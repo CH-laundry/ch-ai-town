@@ -1,28 +1,140 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8" />
-  <title>C.H AI Town</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <title>C.H AI Town ｜洗衣小鎮對話前台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo">
+        <span class="logo-mark">C.H</span>
+        <span class="logo-text">AI Town</span>
+      </div>
+      <div class="header-right">
+        <div class="header-tag">洗衣 · 洗鞋 · 精品包 · 外送</div>
+        <div class="header-sub">多角色 AI 小鎮前台（測試版）</div>
+      </div>
+    </header>
 
-  <header>
-    <div class="logo">🏙️ C.H AI Town</div>
-  </header>
+    <main class="main">
+      <!-- 角色區 -->
+      <section class="section">
+        <h2 class="section-title">選擇角色</h2>
+        <p class="section-sub">
+          每一個角色都是一個「AI 腦袋」，會用不同角度回覆客人問題。
+        </p>
+        <div class="role-grid">
+          <!-- 1. C.H 客服 -->
+          <button
+            class="role-card selected"
+            data-role-id="ch_customer_service"
+            data-role-name="C.H 客服"
+          >
+            <img
+              src="/images/customer_service.png"
+              alt="C.H 客服"
+              class="role-icon"
+            />
+            <div class="role-name">C.H 客服</div>
+            <div class="role-desc">對話、介紹服務、回覆一般問題</div>
+          </button>
 
-  <h2>選擇角色</h2>
+          <!-- 2. 店長 -->
+          <button
+            class="role-card"
+            data-role-id="shop_manager"
+            data-role-name="店長"
+          >
+            <img
+              src="/images/shop_manager.png"
+              alt="店長"
+              class="role-icon"
+            />
+            <div class="role-name">店長</div>
+            <div class="role-desc">掌握全局，說明流程與注意事項</div>
+          </button>
 
-  <div id="roleGrid" class="role-grid"></div>
+          <!-- 3. 清潔師傅 -->
+          <button
+            class="role-card"
+            data-role-id="cleaner_master"
+            data-role-name="清潔師傅"
+          >
+            <img src="/images/cleaner.png" alt="清潔師傅" class="role-icon" />
+            <div class="role-name">清潔師傅</div>
+            <div class="role-desc">分析材質、污漬風險與能否清潔</div>
+          </button>
 
-  <h2>聊天區</h2>
-  <div id="chatBox" class="chat-box"></div>
+          <!-- 4. 熨燙師傅 -->
+          <button
+            class="role-card"
+            data-role-id="ironing_master"
+            data-role-name="熨燙師傅"
+          >
+            <img
+              src="/images/ironing_master.png"
+              alt="熨燙師傅"
+              class="role-icon"
+            />
+            <div class="role-name">熨燙師傅</div>
+            <div class="role-desc">處理熨燙細節、版型與變形風險</div>
+          </button>
 
-  <div class="input-area">
-    <input id="msg" placeholder="輸入訊息..." />
-    <button onclick="sendMessage()">送出</button>
-  </div>
+          <!-- 5. 外送員 -->
+          <button
+            class="role-card"
+            data-role-id="delivery_staff"
+            data-role-name="外送員"
+          >
+            <img
+              src="/images/delivery_staff.png"
+              alt="外送員"
+              class="role-icon"
+            />
+            <div class="role-name">外送員</div>
+            <div class="role-desc">收送時間、範圍與路線相關問題</div>
+          </button>
+        </div>
+      </section>
 
-  <script src="app.js"></script>
-</body>
+      <!-- 聊天區 -->
+      <section class="section">
+        <div class="chat-header-row">
+          <div class="chat-title">聊天區</div>
+          <div class="current-role">
+            <span class="current-role-label">目前角色：</span>
+            <span id="current-role-name">C.H 客服</span>
+          </div>
+        </div>
+
+        <div id="chat-box" class="chat-box">
+          <!-- 動態插入訊息 -->
+        </div>
+
+        <div class="input-area">
+          <input
+            id="chat-input"
+            type="text"
+            placeholder="輸入給這個角色的問題，例如：這個油漬有機會洗掉嗎？"
+          />
+          <button id="send-btn" type="button">發送</button>
+        </div>
+
+        <div class="hint-row">
+          <div class="hint-item">
+            💡 可以嘗試問：
+            <span class="hint-pill">這個皮革包有油漬，風險跟成功率？</span>
+            <span class="hint-pill">外送到中和大概要幾天？</span>
+          </div>
+          <div class="hint-item hint-small">
+            ※ 所有回覆皆為 AI 試算說明，實際以門市師傅現場評估為準。
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
 </html>

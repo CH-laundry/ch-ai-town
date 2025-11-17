@@ -1,88 +1,327 @@
+/* 全局設定 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  background: #111;
-  color: #eee;
-  font-family: "Segoe UI", Arial, sans-serif;
+  padding: 0;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang TC",
+    "Microsoft JhengHei", sans-serif;
+  background: #101014;
+  color: #f7f7fb;
 }
 
-header {
-  padding: 20px;
-  background: #222;
-  border-bottom: 1px solid #333;
-  font-size: 20px;
+/* Header */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #262637;
+  background: #15151c;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-mark {
+  background: #ff6b81;
   color: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
-h2 {
-  margin-left: 20px;
+.logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f5f5ff;
 }
+
+.header-right {
+  text-align: right;
+}
+
+.header-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 107, 129, 0.16);
+  color: #ff9fb0;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.header-sub {
+  font-size: 12px;
+  color: #a0a0c0;
+}
+
+/* 主內容 */
+
+.main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.section {
+  margin-bottom: 24px;
+  background: #15151e;
+  border-radius: 16px;
+  border: 1px solid #262637;
+  padding: 16px 18px 18px;
+}
+
+.section-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f5f5ff;
+}
+
+.section-sub {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #a0a0c0;
+}
+
+/* 角色區 */
 
 .role-grid {
   display: grid;
-  gap: 20px;
-  padding: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .role-card {
-  background: #1f1f1f;
-  border: 1px solid #333;
-  border-radius: 10px;
-  padding: 20px;
+  background: #1b1b25;
+  border-radius: 14px;
+  border: 1px solid #2b2b3c;
+  padding: 12px 10px;
+  text-align: center;
   cursor: pointer;
-  transition: 0.2s;
+  transition: 0.18s ease;
+  color: #f5f5ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .role-card:hover {
-  background: #2a2a2a;
+  border-color: #ff9fb0;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.role-card.selected {
+  border-color: #ff6b81;
+  box-shadow: 0 0 0 1px rgba(255, 107, 129, 0.6);
+  background: #1f1f2b;
+}
+
+.role-card:focus {
+  outline: none;
+}
+
+.role-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: #222230;
+  object-fit: cover;
+}
+
+.role-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.role-desc {
+  font-size: 12px;
+  color: #a9a9c8;
+}
+
+/* 聊天區 */
+
+.chat-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.chat-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.current-role {
+  font-size: 13px;
+  color: #c2c2e0;
+}
+
+.current-role-label {
+  color: #8f8fb0;
+}
+
+#current-role-name {
+  font-weight: 600;
+  color: #ffd2da;
 }
 
 .chat-box {
-  background: #1b1b1b;
-  height: 350px;
-  margin: 20px;
-  border-radius: 10px;
-  padding: 15px;
+  height: 320px;
+  border-radius: 12px;
+  background: #101019;
+  border: 1px solid #262637;
+  padding: 12px;
   overflow-y: auto;
+  font-size: 14px;
 }
 
-.msg {
-  margin: 8px 0;
-  padding: 10px 15px;
-  border-radius: 10px;
-  max-width: 70%;
+/* 訊息泡泡 */
+
+.msg-row {
+  display: flex;
+  margin-bottom: 8px;
 }
 
-.user-msg {
-  background: #3f80ff;
-  margin-left: auto;
+.msg-row.user {
+  justify-content: flex-end;
 }
 
-.ai-msg {
-  background: #333;
-  margin-right: auto;
+.msg-row.ai {
+  justify-content: flex-start;
 }
+
+.msg-bubble {
+  max-width: 80%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.msg-bubble.user {
+  background: #3f7cff;
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.msg-bubble.ai {
+  background: #1f1f2b;
+  color: #f5f5ff;
+  border-bottom-left-radius: 2px;
+}
+
+.msg-meta {
+  font-size: 11px;
+  color: #8f8fb0;
+  margin-bottom: 2px;
+}
+
+/* 輸入區 */
 
 .input-area {
+  margin-top: 10px;
   display: flex;
-  padding: 20px;
+  gap: 8px;
 }
 
-input {
+.input-area input {
   flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #555;
-  background: #222;
-  color: #eee;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid #2c2c3b;
+  background: #101019;
+  color: #f5f5ff;
+  font-size: 14px;
 }
 
-button {
-  padding: 12px 20px;
-  margin-left: 10px;
-  background: #3f80ff;
-  color: white;
+.input-area input::placeholder {
+  color: #696984;
+}
+
+.input-area input:focus {
+  outline: none;
+  border-color: #ff6b81;
+}
+
+.input-area button {
+  border-radius: 999px;
   border: none;
-  border-radius: 8px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  background: #ff6b81;
+  color: #fff;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-area button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 提示列 */
+
+.hint-row {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #9e9ec3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hint-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 8px;
+  border: 1px solid #2e2e40;
+  margin-left: 4px;
+  margin-bottom: 3px;
+}
+
+.hint-small {
+  font-size: 11px;
+  color: #7f7fa3;
+}
+
+/* RWD */
+
+@media (max-width: 720px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .header-right {
+    text-align: left;
+  }
+
+  .chat-box {
+    height: 260px;
+  }
 }
