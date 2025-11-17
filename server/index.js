@@ -8,6 +8,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+app.use(express.static('public'));
+
 
 // 健康檢查 & 確認服務是否啟動
 app.get("/", (req, res) => {
