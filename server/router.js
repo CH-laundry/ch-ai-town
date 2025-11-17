@@ -19,18 +19,31 @@ router.post("/chat", async (req, res) => {
   try {
     const { userId, roleId, message } = req.body;
 
-    const role = roleMap[roleId];
-    if (!role) {
-      return res.status(400).json({ error: "Invalid roleId" });
-    }
+    if (!roleId || !message)
+      return res.status(400).json({ error: "Missing roleId or message" });
 
-    const reply = await role(message, userId);
+    const roleFn = roleMap[roleId];
+    if (!roleFn) return res.status(400).json({ error: "Invalid roleId" });
+
+    const reply = await roleFn(message, userId);
     return res.json(reply);
 
   } catch (err) {
-    console.error("[ERROR] /api/chat:", err);
+    console.error("[ERROR /chat]", err);
     return res.status(500).json({ error: "Internal server error" });
   }
+});
+
+router.get("/roles", (req, res) => {
+  res.json({
+    roles: [
+      { id: "ch_customer_service", name: "C.H 客服" },
+      { id: "store_manager", name: "店長" },
+      { id: "cleaner_master", name: "清潔師傅" },
+      { id: "ironing_master", name: "熨燙師傅" },
+      { id: "delivery_staff", name: "外送員" }
+    ]
+  });
 });
 
 module.exports = router;

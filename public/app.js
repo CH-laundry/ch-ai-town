@@ -1,51 +1,59 @@
-let selectedRole = null;
+let currentRoleId = null;
 
-// 角色按鈕事件
-document.querySelectorAll('.role-card').forEach(card => {
-  card.addEventListener('click', () => {
-    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
+async function loadRoles() {
+  const res = await fetch("/api/roles");
+  const data = await res.json();
 
-    selectedRole = card.dataset.role;
-    document.getElementById('currentRole').innerText =
-      "目前由：「" + card.querySelector('.name').innerText + "」為您服務";
+  const grid = document.getElementById("roleGrid");
+  grid.innerHTML = "";
+
+  data.roles.forEach(role => {
+    const card = document.createElement("div");
+    card.className = "role-card";
+    card.innerHTML = `<div style="font-size:22px">${role.name}</div>`;
+    card.onclick = () => selectRole(role.id);
+    grid.appendChild(card);
   });
-});
+}
 
-// 送出訊息
-document.getElementById('sendBtn').addEventListener('click', sendMessage);
+function selectRole(roleId) {
+  currentRoleId = roleId;
+  document.getElementById("chatBox").innerHTML = "";
+}
 
 async function sendMessage() {
-  const msg = document.getElementById('msgInput').value.trim();
+  if (!currentRoleId) return alert("請先選角色");
+
+  const msg = document.getElementById("msg").value;
   if (!msg) return;
 
-  if (!selectedRole) {
-    alert("請先選擇一個角色");
-    return;
-  }
+  appendUser(msg);
+  document.getElementById("msg").value = "";
 
-  appendMessage(msg, 'user-msg');
-  document.getElementById('msgInput').value = "";
-
-  const res = await fetch('/api/chat', {
+  const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      userId: "web-user",
-      message: msg,
-      preferredRole: selectedRole
+      userId: "browser-user",
+      roleId: currentRoleId,
+      message: msg
     })
   });
 
   const data = await res.json();
-  appendMessage("【" + data.roleName + "】" + data.reply, 'ai-msg');
+  appendAI(data.reply);
 }
 
-function appendMessage(text, cls) {
-  const box = document.getElementById('chatBox');
-  const div = document.createElement('div');
-  div.className = `msg ${cls}`;
-  div.innerText = text;
-  box.appendChild(div);
+function appendUser(text) {
+  const box = document.getElementById("chatBox");
+  box.innerHTML += `<div class="msg user-msg">${text}</div>`;
   box.scrollTop = box.scrollHeight;
 }
+
+function appendAI(text) {
+  const box = document.getElementById("chatBox");
+  box.innerHTML += `<div class="msg ai-msg">${text}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+loadRoles();

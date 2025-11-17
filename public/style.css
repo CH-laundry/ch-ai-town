@@ -1,0 +1,88 @@
+body {
+  margin: 0;
+  background: #111;
+  color: #eee;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+header {
+  padding: 20px;
+  background: #222;
+  border-bottom: 1px solid #333;
+  font-size: 20px;
+  color: #fff;
+}
+
+h2 {
+  margin-left: 20px;
+}
+
+.role-grid {
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.role-card {
+  background: #1f1f1f;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.role-card:hover {
+  background: #2a2a2a;
+}
+
+.chat-box {
+  background: #1b1b1b;
+  height: 350px;
+  margin: 20px;
+  border-radius: 10px;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.msg {
+  margin: 8px 0;
+  padding: 10px 15px;
+  border-radius: 10px;
+  max-width: 70%;
+}
+
+.user-msg {
+  background: #3f80ff;
+  margin-left: auto;
+}
+
+.ai-msg {
+  background: #333;
+  margin-right: auto;
+}
+
+.input-area {
+  display: flex;
+  padding: 20px;
+}
+
+input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #555;
+  background: #222;
+  color: #eee;
+}
+
+button {
+  padding: 12px 20px;
+  margin-left: 10px;
+  background: #3f80ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
