@@ -1,4 +1,4 @@
-/* ==== Reset & 基本設定 ==== */
+/* ===== Reset ===== */
 *,
 *::before,
 *::after {
@@ -13,7 +13,8 @@ body {
   color: #f7f7ff;
 }
 
-/* ==== 整體 Layout ==== */
+/* ===== 整體 layout ===== */
+
 .page {
   min-height: 100vh;
   padding: 16px 16px 24px;
@@ -61,12 +62,12 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(320px, 50%) minmax(320px, 50%);
+  grid-template-columns: minmax(320px, 52%) minmax(320px, 48%);
   gap: 14px;
   height: calc(100vh - 70px);
 }
 
-/* ==== 左側：小地圖 + 角色卡 ==== */
+/* ===== 左側：大地圖 ===== */
 
 .town-panel {
   background: radial-gradient(circle at top, #222744 0%, #080912 70%);
@@ -75,139 +76,24 @@ body {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-/* 上半：小地圖 */
-
-.town-map-wrapper {
-  padding: 8px;
-  border-radius: 14px;
-  background: radial-gradient(circle at top, #202544 0%, #050814 70%);
-  border: 1px solid #34395e;
 }
 
 .game-root {
-  width: 100%;
-  height: 260px; /* 小地圖固定高度 */
-  border-radius: 12px;
+  flex: 1;
+  min-height: 420px;
+  border-radius: 14px;
   overflow: hidden;
-  background: #050814;
+  background: radial-gradient(circle at top, #202544 0%, #050814 60%);
+  display: block;
 }
 
 .town-hint {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 11px;
   opacity: 0.75;
 }
 
-/* 下半：角色卡片列表 */
-
-.role-card-list {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
-.role-card-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.role-card-list::-webkit-scrollbar-thumb {
-  background: rgba(120, 130, 170, 0.7);
-  border-radius: 999px;
-}
-
-/* 單張角色卡片 */
-
-.role-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: rgba(9, 12, 32, 0.92);
-  border: 1px solid rgba(70, 80, 130, 0.8);
-  cursor: pointer;
-  transition: all 0.16s ease-out;
-}
-
-.role-card:hover {
-  transform: translateY(-1px);
-  border-color: #ffb770;
-  box-shadow: 0 0 18px rgba(255, 145, 120, 0.15);
-}
-
-.role-card.active {
-  background: radial-gradient(circle at top, #ff6b81 0%, #ffb770 60%);
-  border-color: transparent;
-  box-shadow: 0 0 22px rgba(255, 145, 120, 0.35);
-  color: #1b0f1f;
-}
-
-.role-card.active .role-card-badge {
-  background: rgba(20, 10, 20, 0.16);
-  border-color: rgba(40, 10, 10, 0.25);
-}
-
-/* 卡片左側頭像 */
-
-.role-card-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  flex-shrink: 0;
-}
-
-.role-card-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* 卡片文字區 */
-
-.role-card-main {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.role-card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.role-card-icon {
-  font-size: 14px;
-}
-
-.role-card-name {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.role-card-badge {
-  margin-top: 2px;
-  font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(110, 120, 170, 0.8);
-  background: rgba(14, 17, 40, 0.9);
-  max-width: 260px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ==== 右側：聊天區 ==== */
+/* ===== 右側：聊天面板 ===== */
 
 .chat-panel {
   background: radial-gradient(circle at top, #252742 0%, #0b0d19 60%);
@@ -281,6 +167,15 @@ body {
   margin-top: 6px;
   overflow-x: auto;
   padding-bottom: 4px;
+}
+
+.role-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.role-tabs::-webkit-scrollbar-thumb {
+  background: rgba(120, 130, 170, 0.7);
+  border-radius: 999px;
 }
 
 .role-tab {

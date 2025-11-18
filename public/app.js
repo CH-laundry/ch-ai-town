@@ -1,8 +1,8 @@
 // public/app.js
-// 版本：左側角色卡片 + 右側 per-role 對話 + 頭像同步
+// 左邊大地圖、右邊對話，角色頭像 + tabs 切換
 
 (function () {
-  // ===== 1. 角色設定：id 要跟 server/roles 下檔名對得上 =====
+  // ===== 1. 角色設定（id 要對應後端 roleMap） =====
   const roles = [
     {
       id: "chCustomerService",
@@ -57,14 +57,13 @@
   const conversations = {};
   const userId = "web-" + Math.random().toString(36).slice(2);
 
-  // ===== 2. 抓 DOM =====
+  // ===== 2. DOM =====
   const roleTabsEl = document.getElementById("role-tabs");
   const chatBoxEl = document.getElementById("chat-box");
   const quickQuestionsEl = document.getElementById("quick-questions");
   const currentRoleNameEl = document.getElementById("current-role-name");
   const roleBadgeEl = document.getElementById("role-badge");
   const roleAvatarImgEl = document.getElementById("role-avatar-img");
-  const roleCardListEl = document.getElementById("role-card-list");
   const chatFormEl = document.getElementById("chat-form");
   const userInputEl = document.getElementById("user-input");
 
@@ -73,7 +72,7 @@
     return;
   }
 
-  // ===== 3. 初始化對話 =====
+  // ===== 3. 對話資料初始化 =====
   function ensureConversation(role) {
     if (!conversations[role.id]) {
       conversations[role.id] = [
@@ -85,7 +84,7 @@
     }
   }
 
-  // ===== 4. 更新右側標頭（名稱 + 徽章 + 頭像） =====
+  // ===== 4. 更新右側標頭 =====
   function updateRoleHeader(role) {
     if (currentRoleNameEl) currentRoleNameEl.textContent = role.name;
     if (roleBadgeEl) roleBadgeEl.textContent = role.badge;
@@ -95,7 +94,7 @@
     }
   }
 
-  // ===== 5. 渲染右側 tabs =====
+  // ===== 5. 渲染角色 tabs =====
   function renderRoleTabs() {
     roleTabsEl.innerHTML = "";
     roles.forEach((r) => {
@@ -112,35 +111,7 @@
     });
   }
 
-  // ===== 6. 渲染左側角色卡片 =====
-  function renderRoleCards() {
-    if (!roleCardListEl) return;
-    roleCardListEl.innerHTML = "";
-
-    roles.forEach((r) => {
-      const card = document.createElement("div");
-      card.className = "role-card" + (r.id === currentRole.id ? " active" : "");
-      card.dataset.roleId = r.id;
-
-      card.innerHTML = `
-        <div class="role-card-avatar">
-          <img src="${r.avatar}" alt="${r.name} 頭像" />
-        </div>
-        <div class="role-card-main">
-          <div class="role-card-title-row">
-            <span class="role-card-icon">${r.icon}</span>
-            <span class="role-card-name">${r.name}</span>
-          </div>
-          <div class="role-card-badge">${r.badge}</div>
-        </div>
-      `;
-
-      card.addEventListener("click", () => switchRole(r.id));
-      roleCardListEl.appendChild(card);
-    });
-  }
-
-  // ===== 7. 範例問題渲染 =====
+  // ===== 6. 範例問題 =====
   function renderQuickQuestions() {
     quickQuestionsEl.innerHTML = "";
     (currentRole.samples || []).forEach((q) => {
@@ -155,7 +126,7 @@
     });
   }
 
-  // ===== 8. 對話渲染 =====
+  // ===== 7. 對話渲染 =====
   function renderConversation() {
     const msgs = conversations[currentRole.id] || [];
     chatBoxEl.innerHTML = "";
@@ -175,7 +146,7 @@
     chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
   }
 
-  // ===== 9. 發送訊息 =====
+  // ===== 8. 發送訊息 =====
   async function sendMessage(text) {
     const t = text.trim();
     if (!t) return;
@@ -212,7 +183,7 @@
     }
   }
 
-  // ===== 10. 切換角色（左側卡片＋右側 tab 都會呼叫） =====
+  // ===== 9. 切換角色 =====
   function switchRole(roleId) {
     const role = roles.find((r) => r.id === roleId);
     if (!role) return;
@@ -221,22 +192,14 @@
     ensureConversation(role);
     updateRoleHeader(role);
     renderRoleTabs();
-    renderRoleCards();
     renderQuickQuestions();
     renderConversation();
   }
 
-  // ===== 11. 綁定表單 =====
+  // ===== 10. 綁定輸入表單 =====
   chatFormEl.addEventListener("submit", (e) => {
     e.preventDefault();
     sendMessage(userInputEl.value);
   });
 
-  // ===== 12. 初始化 =====
-  ensureConversation(currentRole);
-  updateRoleHeader(currentRole);
-  renderRoleTabs();
-  renderRoleCards();
-  renderQuickQuestions();
-  renderConversation();
-})();
+  //
