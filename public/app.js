@@ -1,173 +1,169 @@
-// ===== C.H AI Town 前端主程式 =====
+// public/app.js
+// 右側聊天 + 角色切換
 
-const roles = [
-  {
-    id: "ch_customer_service",
-    name: "C.H 客服",
-    desc: "對話、介紹服務、回覆一般問題",
-  },
-  {
-    id: "shop_manager",
-    name: "店長",
-    desc: "掌握全局，說明流程與注意事項",
-  },
-  {
-    id: "cleaner_master",
-    name: "清潔師傅",
-    desc: "分析材質、污漬風險與能否清潔",
-  },
-  {
-    id: "ironing_master",
-    name: "熨燙師傅",
-    desc: "處理熨燙細節、版型與變形風險",
-  },
-  {
-    id: "delivery_staff",
-    name: "外送員",
-    desc: "收送時間、範圍與路線相關問題",
-  },
-];
+(function () {
+  const roles = [
+    {
+      id: "ch_customer_service",
+      name: "C.H 客服",
+      icon: "💬",
+      badge: "對話 · 介紹服務 · 回覆一般問題",
+      samples: ["這個油漬有機會洗乾淨嗎？", "你們有提供免費收送嗎？", "精品包清洗大概多少價格？"],
+    },
+    {
+      id: "shop_manager",
+      name: "店長",
+      icon: "🧾",
+      badge: "掌握全局 · 說明流程與注意事項",
+      samples: ["收件流程是怎麼跑的？", "哪些狀況會列入高風險清洗？"],
+    },
+    {
+      id: "cleaner_master",
+      name: "清潔師傅",
+      icon: "🧴",
+      badge: "分析材質 · 污漬風險與能否清潔",
+      samples: ["這件白襯衫黃漬能處理到什麼程度？", "麂皮鞋子發霉還能救嗎？"],
+    },
+    {
+      id: "ironing_master",
+      name: "熨燙師傅",
+      icon: "🧺",
+      badge: "熨燙細節 · 版型與變形風險",
+      samples: ["西裝可以整燙到很挺但不傷布料嗎？"],
+    },
+    {
+      id: "delivery_staff",
+      name: "外送員",
+      icon: "🚚",
+      badge: "收送時間 · 區域與聯絡相關問題",
+      samples: ["板橋收送大概什麼時間可以到？", "可以幫我改送回時間嗎？"],
+    },
+  ];
 
-let currentRoleId = roles[0].id;
+  let currentRole = roles[0];
+  let userId = "web-" + Math.random().toString(36).slice(2);
 
-// 建一個簡單 userId，之後可以跟 LINE userId 對接
-function getUserId() {
-  const key = "chAiTownUserId";
-  let id = window.localStorage.getItem(key);
-  if (!id) {
-    id = "user-" + Date.now() + "-" + Math.floor(Math.random() * 1000000);
-    window.localStorage.setItem(key, id);
-  }
-  return id;
-}
-
-const userId = getUserId();
-
-document.addEventListener("DOMContentLoaded", () => {
-  const roleCards = document.querySelectorAll(".role-card");
+  const roleTabsEl = document.getElementById("role-tabs");
+  const chatBoxEl = document.getElementById("chat-box");
+  const quickQuestionsEl = document.getElementById("quick-questions");
   const currentRoleNameEl = document.getElementById("current-role-name");
-  const chatBox = document.getElementById("chat-box");
-  const input = document.getElementById("chat-input");
-  const sendBtn = document.getElementById("send-btn");
+  const chatFormEl = document.getElementById("chat-form");
+  const userInputEl = document.getElementById("user-input");
 
-  // 切換角色
-  roleCards.forEach((card) => {
-    card.addEventListener("click", () => {
-      roleCards.forEach((c) => c.classList.remove("selected"));
-      card.classList.add("selected");
-
-      currentRoleId = card.dataset.roleId;
-      const roleName = card.dataset.roleName || "AI 角色";
-      currentRoleNameEl.textContent = roleName;
-
-      appendSystemMessage(
-        `已切換成「${roleName}」。你可以直接繼續提問，不需要重新整理畫面。`
-      );
-    });
-  });
-
-  // 發送訊息
-  sendBtn.addEventListener("click", () => {
-    sendMessage(input, sendBtn, chatBox, currentRoleNameEl.textContent);
-  });
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage(input, sendBtn, chatBox, currentRoleNameEl.textContent);
-    }
-  });
-
-  // 初始提示
-  appendSystemMessage("你好，這裡是 C.H AI Town，小鎮角色已就緒，請先選擇你想對話的角色。");
-});
-
-// ===== UI Helper =====
-
-function appendMessage(text, type, roleName) {
-  const chatBox = document.getElementById("chat-box");
-  const row = document.createElement("div");
-  row.className = "msg-row " + type;
-
-  const bubble = document.createElement("div");
-  bubble.className = "msg-bubble " + type;
-
-  if (roleName) {
-    const meta = document.createElement("div");
-    meta.className = "msg-meta";
-    meta.textContent = type === "user" ? "你" : roleName;
-    bubble.appendChild(meta);
+  if (!roleTabsEl || !chatBoxEl || !chatFormEl) {
+    return;
   }
 
-  const content = document.createElement("div");
-  content.textContent = text;
-  bubble.appendChild(content);
+  // === UI 初始化 ===
 
-  row.appendChild(bubble);
-  chatBox.appendChild(row);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function appendSystemMessage(text) {
-  appendMessage(text, "ai", "系統訊息");
-}
-
-function setLoadingState(isLoading) {
-  const btn = document.getElementById("send-btn");
-  const input = document.getElementById("chat-input");
-
-  btn.disabled = isLoading;
-  input.disabled = isLoading;
-
-  if (isLoading) {
-    btn.textContent = "思考中…";
-  } else {
-    btn.textContent = "發送";
-  }
-}
-
-// ===== 與後端溝通 =====
-
-async function sendMessage(input, sendBtn, chatBox, roleNameForDisplay) {
-  const text = (input.value || "").trim();
-  if (!text) return;
-
-  appendMessage(text, "user", "你");
-  input.value = "";
-  setLoadingState(true);
-
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId,
-        roleId: currentRoleId,
-        message: text,
-      }),
+  function renderRoleTabs() {
+    roleTabsEl.innerHTML = "";
+    roles.forEach((r) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "role-tab" + (r.id === currentRole.id ? " active" : "");
+      btn.dataset.roleId = r.id;
+      btn.innerHTML = `<span class="icon">${r.icon}</span><span class="label">${r.name}</span>`;
+      btn.addEventListener("click", () => switchRole(r.id));
+      roleTabsEl.appendChild(btn);
     });
+  }
 
-    if (!res.ok) {
-      throw new Error("HTTP " + res.status);
-    }
+  function renderQuickQuestions() {
+    quickQuestionsEl.innerHTML = "";
+    (currentRole.samples || []).forEach((q) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = q;
+      b.addEventListener("click", () => {
+        userInputEl.value = q;
+        userInputEl.focus();
+      });
+      quickQuestionsEl.appendChild(b);
+    });
+  }
 
-    const data = await res.json();
-    const replyText =
-      data.reply ||
-      "後端沒有回覆內容，請稍後再試或聯絡系統管理者。";
+  function addMessage(type, text) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "msg " + type;
 
-    appendMessage(replyText, "ai", roleNameForDisplay || "AI 角色");
-  } catch (err) {
-    appendMessage(
-      "系統目前連線有點問題，請稍後再試一次。\n（錯誤詳情：" +
-        err.message +
-        "）",
-      "ai",
-      "系統錯誤"
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+
+    wrapper.appendChild(bubble);
+    chatBoxEl.appendChild(wrapper);
+    chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+  }
+
+  function switchRole(roleId) {
+    const role = roles.find((r) => r.id === roleId);
+    if (!role) return;
+    currentRole = role;
+
+    currentRoleNameEl.textContent = role.name;
+    const badgeEl = document.querySelector(".role-badge");
+    if (badgeEl) badgeEl.textContent = role.badge;
+
+    renderRoleTabs();
+    renderQuickQuestions();
+
+    addMessage(
+      "system",
+      `🔁 你現在切換成「${role.name}」模式，問題會由這個角色的 AI 腦袋來回答。`
     );
-  } finally {
-    setLoadingState(false);
   }
-}
+
+  function initChat() {
+    // 初始化系統提示
+    addMessage(
+      "system",
+      "你好，這裡是 C.H AI Town。左邊是 2D 小鎮，右邊是不同角色的 AI 對話區，請先在上方選擇你想對話的角色。"
+    );
+  }
+
+  // === 發送訊息 ===
+
+  async function sendMessage(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    addMessage("user", trimmed);
+    userInputEl.value = "";
+
+    try {
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          message: trimmed,
+          roleId: currentRole.id,
+        }),
+      });
+
+      if (!resp.ok) {
+        throw new Error("HTTP " + resp.status);
+      }
+
+      const data = await resp.json();
+      const reply = data.reply || data.message || JSON.stringify(data);
+      addMessage("ai", reply);
+    } catch (err) {
+      addMessage("ai", "抱歉，後端發生錯誤，請稍後再試或通知店長檢查伺服器狀態。");
+      console.error(err);
+    }
+  }
+
+  // === 綁定表單 ===
+
+  chatFormEl.addEventListener("submit", function (e) {
+    e.preventDefault();
+    sendMessage(userInputEl.value);
+  });
+
+  // 初始化
+  initChat();
+  renderRoleTabs();
+  renderQuickQuestions();
+})();

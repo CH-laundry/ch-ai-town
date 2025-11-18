@@ -36,7 +36,7 @@
       const w = this.scale.width;
       const h = this.scale.height;
 
-      // ===== 背景漸層感（用幾個半透明矩形疊出來） =====
+      // 背景
       const bgBase = this.add.rectangle(w / 2, h / 2, w, h, 0x13162a);
       const bgGlow = this.add.rectangle(w / 2, h * 0.3, w * 0.8, h * 0.6, 0x22294b, 0.9);
       const bgBottom = this.add.rectangle(w / 2, h * 0.9, w * 0.8, h * 0.3, 0x181b33, 0.9);
@@ -45,7 +45,7 @@
       bgGlow.setStrokeStyle(1, 0x363d66);
       bgBottom.setStrokeStyle(1, 0x363d66);
 
-      // ===== 道路（中間橫線 + 左側縱線） =====
+      // 道路
       const roadColor = 0x1e2238;
 
       const roadH = this.add.rectangle(w / 2, h * 0.58, w * 0.86, 52, roadColor);
@@ -54,11 +54,11 @@
       const roadV = this.add.rectangle(w * 0.28, h * 0.5, 46, h * 0.7, roadColor);
       roadV.setStrokeStyle(1, 0x3b4262);
 
-      // ===== 草地區塊 =====
+      // 草地區
       this.add.rectangle(w * 0.7, h * 0.26, w * 0.4, h * 0.3, 0x182433).setStrokeStyle(1, 0x335a7a);
       this.add.rectangle(w * 0.7, h * 0.82, w * 0.4, h * 0.26, 0x182433).setStrokeStyle(1, 0x335a7a);
 
-      // ===== 建築：門市、整理區 / 倉庫、外送集散點 =====
+      // 建築
       this._createBuilding({
         x: w * 0.7,
         y: h * 0.25,
@@ -95,22 +95,19 @@
         icon: "🚚",
       });
 
-      // 小指示牌
       this.add.text(w * 0.08, h * 0.08, "👣 點一下小鎮任一位置\n角色會走過去", {
         fontSize: 12,
         color: "#f4f5ff",
         lineSpacing: 4,
       });
 
-      // ===== 主角（你） =====
+      // 主角
       this.player = this.physics.add.circle(w * 0.3, h * 0.58, 15, 0xff8fb6);
       this.player.setStrokeStyle(2, 0xffffff);
       this.player.body.setCollideWorldBounds(true);
 
-      // 光暈
       this.playerAura = this.add.circle(this.player.x, this.player.y, 24, 0xff8fb6, 0.2);
 
-      // 名稱
       this.playerLabel = this.add
         .text(this.player.x, this.player.y - 26, "你", {
           fontSize: 12,
@@ -118,10 +115,8 @@
         })
         .setOrigin(0.5, 1);
 
-      // 鍵盤
       this.cursors = this.input.keyboard.createCursorKeys();
 
-      // 點擊移動
       this.input.on("pointerdown", (pointer) => {
         this.moveTarget = { x: pointer.worldX, y: pointer.worldY };
       });
@@ -133,7 +128,6 @@
       const base = this.add.rectangle(x, y, width, height, color);
       base.setStrokeStyle(2, border);
 
-      // 上方招牌
       const sign = this.add.rectangle(x, y - height * 0.33, width * 0.7, 20, border, 1);
       sign.setStrokeStyle(1, 0xffffff);
 
@@ -151,7 +145,6 @@
         })
         .setOrigin(0.5, 0.5);
 
-      // 窗戶
       const winW = width * 0.18;
       const winH = height * 0.28;
       this.add.rectangle(x - width * 0.22, y + height * 0.05, winW, winH, 0x34425f).setStrokeStyle(1, 0x6073a2);
@@ -167,7 +160,6 @@
 
       body.setVelocity(0);
 
-      // 鍵盤移動（優先）
       if (this.cursors.left.isDown) {
         body.setVelocityX(-speed);
         this.moveTarget = null;
@@ -184,7 +176,6 @@
         this.moveTarget = null;
       }
 
-      // 點擊自動走路
       if (this.moveTarget) {
         const dx = this.moveTarget.x - this.player.x;
         const dy = this.moveTarget.y - this.player.y;
@@ -200,13 +191,11 @@
         }
       }
 
-      // Clamp 邊界
       const w = this.scale.width;
       const h = this.scale.height;
       this.player.x = Phaser.Math.Clamp(this.player.x, 24, w - 24);
       this.player.y = Phaser.Math.Clamp(this.player.y, 24, h - 24);
 
-      // 更新光暈 & 標籤
       if (this.playerAura) {
         this.playerAura.x = this.player.x;
         this.playerAura.y = this.player.y;
@@ -218,7 +207,6 @@
     }
   }
 
-  // ===== 啟動遊戲 =====
   function boot() {
     const root = document.getElementById(GAME_ROOT_ID);
     if (!root) return;
