@@ -1,5 +1,5 @@
 // public/app.js
-// 左邊大地圖、右邊對話，角色頭像 + tabs 切換
+// 右側角色管理 + 對話邏輯
 
 (function () {
   // ===== 1. 角色設定（id 要對應後端 roleMap） =====
@@ -29,7 +29,7 @@
       name: "清潔師傅",
       icon: "🧴",
       avatar: "/images/role-cleaner.png",
-      badge: "分析材質 · 污漬風險與能否清潔",
+      badge: "分析材質 · 汙漬風險與能否清潔",
       samples: [
         "這件白襯衫黃漬能處理到什麼程度？",
         "麂皮鞋子發霉還能救嗎？",
@@ -48,7 +48,7 @@
       name: "外送員",
       icon: "🚚",
       avatar: "/images/role-delivery.png",
-      badge: "收送時間 · 区域與聯絡相關問題",
+      badge: "收送時間 · 區域與聯絡相關問題",
       samples: ["板橋收送大概什麼時間可以到？", "可以幫我改送回時間嗎？"],
     },
   ];

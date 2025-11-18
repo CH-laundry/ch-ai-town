@@ -200,11 +200,7 @@
 
       // 點擊地圖：走到該位置
       scene.input.on("pointerdown", (pointer) => {
-        const localY = Phaser.Math.Clamp(
-          pointer.y,
-          h * 0.16,
-          h * 0.82
-        );
+        const localY = Phaser.Math.Clamp(pointer.y, h * 0.16, h * 0.82);
         const localX = Phaser.Math.Clamp(
           pointer.x,
           centerX - w * 0.38,
