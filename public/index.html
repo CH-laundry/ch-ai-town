@@ -7,13 +7,11 @@
 
     <link rel="stylesheet" href="/style.css" />
 
-    <!-- 🔑 關鍵 1：載入 Phaser 遊戲引擎 -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
   </head>
 
   <body>
     <div class="page">
-      <!-- 頂部列 -->
       <header class="topbar">
         <div class="brand">
           <div class="brand-logo">C.H</div>
@@ -25,44 +23,37 @@
       </header>
 
       <main class="layout">
-        <!-- ====================== -->
-        <!-- 左側：小鎮遊戲區 -->
-        <!-- ====================== -->
+        <!-- 左側小鎮 -->
         <section class="town-panel">
-          <!-- 🔑 關鍵 2：給 game.js 掛載用的 root -->
           <div id="game-root" class="game-root"></div>
-
           <div class="town-hint">
-            💡 操作提示：鍵盤方向鍵可以移動主角；
-            手機點擊小鎮任一位置，圓形角色會走過去。
+            💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
           </div>
         </section>
 
-        <!-- ====================== -->
-        <!-- 右側：AI 對話區 -->
-        <!-- ====================== -->
+        <!-- 右側聊天 -->
         <section class="chat-panel">
-          <!-- 標頭：角色顯示 -->
           <div class="role-header">
-            <div class="role-info">
-              <div class="role-label">當前角色</div>
-              <div id="current-role-name" class="role-name">C.H 客服</div>
+            <div class="role-main">
+              <div class="role-avatar">
+                <img id="role-avatar-img" src="/images/role-cs.png" alt="角色頭像" />
+              </div>
+
+              <div class="role-info">
+                <div class="role-label">當前角色</div>
+                <div id="current-role-name" class="role-name">C.H 客服</div>
+              </div>
             </div>
+
             <div class="role-badge" id="role-badge">
               對話 · 介紹服務 · 回覆一般問題
             </div>
           </div>
 
-          <!-- 角色 tabs（由 app.js 動態生成） -->
           <div class="role-tabs" id="role-tabs"></div>
-
-          <!-- 聊天內容 -->
           <div class="chat-box" id="chat-box"></div>
-
-          <!-- 範例問題 -->
           <div class="quick-questions" id="quick-questions"></div>
 
-          <!-- 輸入區 -->
           <form id="chat-form" class="input-area">
             <input
               id="user-input"
@@ -76,10 +67,7 @@
       </main>
     </div>
 
-    <!-- 右邊角色聊天邏輯 -->
     <script src="/app.js"></script>
-
-    <!-- 左邊小鎮遊戲邏輯 -->
     <script src="/game.js"></script>
   </body>
 </html>

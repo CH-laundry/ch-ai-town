@@ -104,10 +104,34 @@ body {
   gap: 8px;
 }
 
+/* ===== 新增：角色頭像區 ===== */
+
 .role-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.role-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.role-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .role-info {
@@ -241,7 +265,7 @@ body {
   border-radius: 999px;
   border: 1px solid #40466b;
   background: rgba(10, 14, 34, 0.9);
-  color: #e7e7ff;
+ 	color: #e7e7ff;
   cursor: pointer;
 }
 

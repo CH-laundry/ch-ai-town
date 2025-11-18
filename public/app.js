@@ -1,14 +1,11 @@
-// public/app.js
-// 版本：per-role 對話 + 後端角色 key 對齊
-
 (function () {
-  // ===== 1. 角色設定：這裡的 id 要跟 server/roles 下的檔名 key 對得上 =====
+  // ===== 1. 角色設定 =====
   const roles = [
     {
-      // 對應 roles/chCustomerService.js
       id: "chCustomerService",
       name: "C.H 客服",
       icon: "💬",
+      avatar: "/images/role-cs.png",
       badge: "對話 · 介紹服務 · 回覆一般問題",
       samples: [
         "這個油漬有機會洗乾淨嗎？",
@@ -17,18 +14,21 @@
       ],
     },
     {
-      // 對應 roles/shopManager.js
       id: "shopManager",
       name: "店長",
       icon: "🧾",
+      avatar: "/images/role-manager.png",
       badge: "掌握全局 · 說明流程與注意事項",
-      samples: ["收件流程是怎麼跑的？", "哪些情況會列入高風險清洗？"],
+      samples: [
+        "收件流程是怎麼跑的？",
+        "哪些情況會列入高風險清洗？",
+      ],
     },
     {
-      // 對應 roles/cleanerMaster.js
       id: "cleanerMaster",
       name: "清潔師傅",
       icon: "🧴",
+      avatar: "/images/role-cleaner.png",
       badge: "分析材質 · 污漬風險與能否清潔",
       samples: [
         "這件白襯衫黃漬能處理到什麼程度？",
@@ -36,42 +36,37 @@
       ],
     },
     {
-      // 對應 roles/ironingMaster.js
       id: "ironingMaster",
       name: "熨燙師傅",
       icon: "🧺",
+      avatar: "/images/role-ironing.png",
       badge: "熨燙細節 · 版型與變形風險",
       samples: ["西裝可以整燙到很挺但不傷布料嗎？"],
     },
     {
-      // 對應 roles/deliveryStaff.js
       id: "deliveryStaff",
       name: "外送員",
       icon: "🚚",
+      avatar: "/images/role-delivery.png",
       badge: "收送時間 · 區域與聯絡相關問題",
       samples: ["板橋收送大概什麼時間可以到？", "可以幫我改送回時間嗎？"],
     },
   ];
 
   let currentRole = roles[0];
-  const conversations = {}; // roleId -> [{ type: 'user'|'ai'|'system', text }]
+  const conversations = {};
   const userId = "web-" + Math.random().toString(36).slice(2);
 
-  // ===== 2. 抓 DOM =====
+  // ===== DOM =====
   const roleTabsEl = document.getElementById("role-tabs");
   const chatBoxEl = document.getElementById("chat-box");
   const quickQuestionsEl = document.getElementById("quick-questions");
   const currentRoleNameEl = document.getElementById("current-role-name");
   const roleBadgeEl = document.getElementById("role-badge");
+  const roleAvatarImgEl = document.getElementById("role-avatar-img");
   const chatFormEl = document.getElementById("chat-form");
   const userInputEl = document.getElementById("user-input");
 
-  if (!roleTabsEl || !chatBoxEl || !chatFormEl) {
-    console.warn("[C.H AI Town] 必要元素缺失，app.js 未啟動。");
-    return;
-  }
-
-  // ===== 3. 工具：初始化對話 =====
   function ensureConversation(role) {
     if (!conversations[role.id]) {
       conversations[role.id] = [
@@ -83,7 +78,6 @@
     }
   }
 
-  // ===== 4. 畫角色 tabs =====
   function renderRoleTabs() {
     roleTabsEl.innerHTML = "";
     roles.forEach((r) => {
@@ -91,43 +85,38 @@
       btn.type = "button";
       btn.className = "role-tab" + (r.id === currentRole.id ? " active" : "");
       btn.dataset.roleId = r.id;
-      btn.innerHTML = `
-        <span class="icon">${r.icon}</span>
-        <span class="label">${r.name}</span>
-      `;
+      btn.innerHTML = `<span class="icon">${r.icon}</span><span class="label">${r.name}</span>`;
       btn.addEventListener("click", () => switchRole(r.id));
       roleTabsEl.appendChild(btn);
     });
   }
 
-  // ===== 5. 範例問題 =====
   function renderQuickQuestions() {
     quickQuestionsEl.innerHTML = "";
     (currentRole.samples || []).forEach((q) => {
       const b = document.createElement("button");
-      b.type = "button";
       b.textContent = q;
       b.addEventListener("click", () => {
         userInputEl.value = q;
-        userInputEl.focus();
       });
       quickQuestionsEl.appendChild(b);
     });
   }
 
-  // ===== 6. 對話渲染 =====
   function renderConversation() {
     const msgs = conversations[currentRole.id] || [];
     chatBoxEl.innerHTML = "";
 
     msgs.forEach((m) => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "msg " + m.type;
+      const wrap = document.createElement("div");
+      wrap.className = "msg " + m.type;
+
       const bubble = document.createElement("div");
       bubble.className = "bubble";
       bubble.textContent = m.text;
-      wrapper.appendChild(bubble);
-      chatBoxEl.appendChild(wrapper);
+
+      wrap.appendChild(bubble);
+      chatBoxEl.appendChild(wrap);
     });
 
     chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
@@ -136,19 +125,24 @@
   function pushMessage(role, type, text) {
     ensureConversation(role);
     conversations[role.id].push({ type, text });
-    if (role.id === currentRole.id) {
-      renderConversation();
-    }
+    if (role.id === currentRole.id) renderConversation();
   }
 
-  // ===== 7. 切換角色：聊天紀錄分開存 =====
+  // ===== 新增：更新角色頭像 =====
+  function updateRoleHeader(role) {
+    currentRoleNameEl.textContent = role.name;
+    roleBadgeEl.textContent = role.badge;
+    roleAvatarImgEl.src = role.avatar;
+    roleAvatarImgEl.alt = role.name + "頭像";
+  }
+
+  // ===== 切換角色 =====
   function switchRole(roleId) {
     const role = roles.find((r) => r.id === roleId);
     if (!role) return;
 
     currentRole = role;
-    currentRoleNameEl.textContent = role.name;
-    if (roleBadgeEl) roleBadgeEl.textContent = role.badge;
+    updateRoleHeader(role);
 
     ensureConversation(role);
     renderRoleTabs();
@@ -156,13 +150,13 @@
     renderConversation();
   }
 
-  // ===== 8. 發送訊息 -> /api/chat =====
+  // ===== 發送訊息 =====
   async function sendMessage(text) {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+    const t = text.trim();
+    if (!t) return;
 
     const role = currentRole;
-    pushMessage(role, "user", trimmed);
+    pushMessage(role, "user", t);
     userInputEl.value = "";
 
     try {
@@ -171,33 +165,26 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          message: trimmed,
-          roleId: role.id, // ★ 關鍵：用 chCustomerService / shopManager 等，跟後端對齊
+          message: t,
+          roleId: role.id,
         }),
       });
 
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
       const data = await resp.json();
-      const reply = data.reply || data.message || JSON.stringify(data);
-      pushMessage(role, "ai", reply);
+      pushMessage(role, "ai", data.reply || data.message);
     } catch (err) {
-      console.error("[C.H AI Town] /api/chat error:", err);
-      pushMessage(
-        role,
-        "ai",
-        "抱歉，後端發生錯誤，請稍後再試或請店長檢查伺服器。"
-      );
+      pushMessage(role, "ai", "伺服器錯誤，請稍後再試。");
     }
   }
 
-  // ===== 9. 綁定表單 =====
   chatFormEl.addEventListener("submit", (e) => {
     e.preventDefault();
     sendMessage(userInputEl.value);
   });
 
-  // ===== 10. 初始化 =====
+  // ===== 初始化 =====
   ensureConversation(currentRole);
+  updateRoleHeader(currentRole);
   renderRoleTabs();
   renderQuickQuestions();
   renderConversation();
