@@ -4,14 +4,11 @@
     <meta charset="UTF-8" />
     <title>C.H AI TOWN</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <link rel="stylesheet" href="/style.css" />
-
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
   </head>
-
   <body>
     <div class="page">
+      <!-- 頂部列 -->
       <header class="topbar">
         <div class="brand">
           <div class="brand-logo">C.H</div>
@@ -23,22 +20,29 @@
       </header>
 
       <main class="layout">
-        <!-- 左側小鎮 -->
+        <!-- 左：小地圖 + 角色卡片選擇 -->
         <section class="town-panel">
-          <div id="game-root" class="game-root"></div>
-          <div class="town-hint">
-            💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
+          <div class="town-map-wrapper">
+            <div id="game-root" class="game-root"></div>
+            <div class="town-hint">
+              💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
+            </div>
           </div>
+
+          <div class="role-card-list" id="role-card-list"></div>
         </section>
 
-        <!-- 右側聊天 -->
+        <!-- 右：AI 對話區 -->
         <section class="chat-panel">
           <div class="role-header">
             <div class="role-main">
               <div class="role-avatar">
-                <img id="role-avatar-img" src="/images/role-cs.png" alt="角色頭像" />
+                <img
+                  id="role-avatar-img"
+                  src="/images/role-cs.png"
+                  alt="角色頭像"
+                />
               </div>
-
               <div class="role-info">
                 <div class="role-label">當前角色</div>
                 <div id="current-role-name" class="role-name">C.H 客服</div>
@@ -50,10 +54,16 @@
             </div>
           </div>
 
+          <!-- 角色 tabs（保留，當作快捷切換） -->
           <div class="role-tabs" id="role-tabs"></div>
+
+          <!-- 對話框 -->
           <div class="chat-box" id="chat-box"></div>
+
+          <!-- 範例問題 -->
           <div class="quick-questions" id="quick-questions"></div>
 
+          <!-- 輸入區 -->
           <form id="chat-form" class="input-area">
             <input
               id="user-input"

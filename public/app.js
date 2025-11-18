@@ -1,5 +1,8 @@
+// public/app.js
+// 版本：左側角色卡片 + 右側 per-role 對話 + 頭像同步
+
 (function () {
-  // ===== 1. 角色設定 =====
+  // ===== 1. 角色設定：id 要跟 server/roles 下檔名對得上 =====
   const roles = [
     {
       id: "chCustomerService",
@@ -19,10 +22,7 @@
       icon: "🧾",
       avatar: "/images/role-manager.png",
       badge: "掌握全局 · 說明流程與注意事項",
-      samples: [
-        "收件流程是怎麼跑的？",
-        "哪些情況會列入高風險清洗？",
-      ],
+      samples: ["收件流程是怎麼跑的？", "哪些情況會列入高風險清洗？"],
     },
     {
       id: "cleanerMaster",
@@ -57,16 +57,23 @@
   const conversations = {};
   const userId = "web-" + Math.random().toString(36).slice(2);
 
-  // ===== DOM =====
+  // ===== 2. 抓 DOM =====
   const roleTabsEl = document.getElementById("role-tabs");
   const chatBoxEl = document.getElementById("chat-box");
   const quickQuestionsEl = document.getElementById("quick-questions");
   const currentRoleNameEl = document.getElementById("current-role-name");
   const roleBadgeEl = document.getElementById("role-badge");
   const roleAvatarImgEl = document.getElementById("role-avatar-img");
+  const roleCardListEl = document.getElementById("role-card-list");
   const chatFormEl = document.getElementById("chat-form");
   const userInputEl = document.getElementById("user-input");
 
+  if (!roleTabsEl || !chatBoxEl || !chatFormEl) {
+    console.warn("[C.H AI Town] 必要元素缺失，app.js 未啟動。");
+    return;
+  }
+
+  // ===== 3. 初始化對話 =====
   function ensureConversation(role) {
     if (!conversations[role.id]) {
       conversations[role.id] = [
@@ -78,6 +85,17 @@
     }
   }
 
+  // ===== 4. 更新右側標頭（名稱 + 徽章 + 頭像） =====
+  function updateRoleHeader(role) {
+    if (currentRoleNameEl) currentRoleNameEl.textContent = role.name;
+    if (roleBadgeEl) roleBadgeEl.textContent = role.badge;
+    if (roleAvatarImgEl && role.avatar) {
+      roleAvatarImgEl.src = role.avatar;
+      roleAvatarImgEl.alt = role.name + "頭像";
+    }
+  }
+
+  // ===== 5. 渲染右側 tabs =====
   function renderRoleTabs() {
     roleTabsEl.innerHTML = "";
     roles.forEach((r) => {
@@ -85,78 +103,87 @@
       btn.type = "button";
       btn.className = "role-tab" + (r.id === currentRole.id ? " active" : "");
       btn.dataset.roleId = r.id;
-      btn.innerHTML = `<span class="icon">${r.icon}</span><span class="label">${r.name}</span>`;
+      btn.innerHTML = `
+        <span class="icon">${r.icon}</span>
+        <span class="label">${r.name}</span>
+      `;
       btn.addEventListener("click", () => switchRole(r.id));
       roleTabsEl.appendChild(btn);
     });
   }
 
+  // ===== 6. 渲染左側角色卡片 =====
+  function renderRoleCards() {
+    if (!roleCardListEl) return;
+    roleCardListEl.innerHTML = "";
+
+    roles.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "role-card" + (r.id === currentRole.id ? " active" : "");
+      card.dataset.roleId = r.id;
+
+      card.innerHTML = `
+        <div class="role-card-avatar">
+          <img src="${r.avatar}" alt="${r.name} 頭像" />
+        </div>
+        <div class="role-card-main">
+          <div class="role-card-title-row">
+            <span class="role-card-icon">${r.icon}</span>
+            <span class="role-card-name">${r.name}</span>
+          </div>
+          <div class="role-card-badge">${r.badge}</div>
+        </div>
+      `;
+
+      card.addEventListener("click", () => switchRole(r.id));
+      roleCardListEl.appendChild(card);
+    });
+  }
+
+  // ===== 7. 範例問題渲染 =====
   function renderQuickQuestions() {
     quickQuestionsEl.innerHTML = "";
     (currentRole.samples || []).forEach((q) => {
       const b = document.createElement("button");
+      b.type = "button";
       b.textContent = q;
       b.addEventListener("click", () => {
         userInputEl.value = q;
+        userInputEl.focus();
       });
       quickQuestionsEl.appendChild(b);
     });
   }
 
+  // ===== 8. 對話渲染 =====
   function renderConversation() {
     const msgs = conversations[currentRole.id] || [];
     chatBoxEl.innerHTML = "";
 
     msgs.forEach((m) => {
-      const wrap = document.createElement("div");
-      wrap.className = "msg " + m.type;
+      const wrapper = document.createElement("div");
+      wrapper.className = "msg " + m.type;
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
       bubble.textContent = m.text;
 
-      wrap.appendChild(bubble);
-      chatBoxEl.appendChild(wrap);
+      wrapper.appendChild(bubble);
+      chatBoxEl.appendChild(wrapper);
     });
 
     chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
   }
 
-  function pushMessage(role, type, text) {
-    ensureConversation(role);
-    conversations[role.id].push({ type, text });
-    if (role.id === currentRole.id) renderConversation();
-  }
-
-  // ===== 新增：更新角色頭像 =====
-  function updateRoleHeader(role) {
-    currentRoleNameEl.textContent = role.name;
-    roleBadgeEl.textContent = role.badge;
-    roleAvatarImgEl.src = role.avatar;
-    roleAvatarImgEl.alt = role.name + "頭像";
-  }
-
-  // ===== 切換角色 =====
-  function switchRole(roleId) {
-    const role = roles.find((r) => r.id === roleId);
-    if (!role) return;
-
-    currentRole = role;
-    updateRoleHeader(role);
-
-    ensureConversation(role);
-    renderRoleTabs();
-    renderQuickQuestions();
-    renderConversation();
-  }
-
-  // ===== 發送訊息 =====
+  // ===== 9. 發送訊息 =====
   async function sendMessage(text) {
     const t = text.trim();
     if (!t) return;
 
     const role = currentRole;
-    pushMessage(role, "user", t);
+    ensureConversation(role);
+    conversations[role.id].push({ type: "user", text: t });
+    renderConversation();
     userInputEl.value = "";
 
     try {
@@ -171,21 +198,45 @@
       });
 
       const data = await resp.json();
-      pushMessage(role, "ai", data.reply || data.message);
+      const reply = data.reply || data.message || "（無回應內容）";
+
+      conversations[role.id].push({ type: "ai", text: reply });
+      renderConversation();
     } catch (err) {
-      pushMessage(role, "ai", "伺服器錯誤，請稍後再試。");
+      console.error(err);
+      conversations[role.id].push({
+        type: "ai",
+        text: "伺服器忙碌中，請稍後再試。",
+      });
+      renderConversation();
     }
   }
 
+  // ===== 10. 切換角色（左側卡片＋右側 tab 都會呼叫） =====
+  function switchRole(roleId) {
+    const role = roles.find((r) => r.id === roleId);
+    if (!role) return;
+
+    currentRole = role;
+    ensureConversation(role);
+    updateRoleHeader(role);
+    renderRoleTabs();
+    renderRoleCards();
+    renderQuickQuestions();
+    renderConversation();
+  }
+
+  // ===== 11. 綁定表單 =====
   chatFormEl.addEventListener("submit", (e) => {
     e.preventDefault();
     sendMessage(userInputEl.value);
   });
 
-  // ===== 初始化 =====
+  // ===== 12. 初始化 =====
   ensureConversation(currentRole);
   updateRoleHeader(currentRole);
   renderRoleTabs();
+  renderRoleCards();
   renderQuickQuestions();
   renderConversation();
 })();
