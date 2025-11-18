@@ -20,13 +20,20 @@
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.style.display = "block";
+
     root.innerHTML = "";
     root.appendChild(canvas);
+
+    // ✅ 關鍵修正：先把 state.canvas 設好，下面 drawScene 才有東西可畫
+    state.canvas = canvas;
+
     resizeCanvas(canvas, root);
     return canvas;
   }
 
   function resizeCanvas(canvas, root) {
+    if (!canvas) return;
+
     const rect = root.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     const width = Math.max(320, rect.width || 480);
@@ -50,8 +57,9 @@
 
   function drawScene() {
     const ctx = state.ctx;
-    if (!ctx) return;
     const canvas = state.canvas;
+    if (!ctx || !canvas) return; // 再加一層保護
+
     const rect = canvas.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
@@ -298,7 +306,9 @@
       resizeCanvas(state.canvas, root);
     });
 
-    state.canvas.addEventListener("click", handleClick);
+    if (state.canvas) {
+      state.canvas.addEventListener("click", handleClick);
+    }
     window.addEventListener("keydown", handleKeydown);
 
     if (state.animationId) cancelAnimationFrame(state.animationId);
