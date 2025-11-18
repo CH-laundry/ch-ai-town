@@ -20,11 +20,11 @@
       </header>
 
       <main class="layout">
-        <!-- 左：2D 小鎮 -->
+        <!-- 左：2D 小鎮（原生 canvas） -->
         <section class="town-panel">
-          <div id="game-root" class="game-root"></div>
+          <canvas id="town-canvas" class="game-root"></canvas>
           <div class="town-hint">
-            💡 操作提示：鍵盤方向鍵可以移動主角 · 手機點擊小鎮任一位置，圓形角色會走過去
+            💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
           </div>
         </section>
 
@@ -35,20 +35,16 @@
               <div class="role-label">當前角色</div>
               <div id="current-role-name" class="role-name">C.H 客服</div>
             </div>
-            <div class="role-badge">
-              對話：介紹服務、回答一般問題
+            <div class="role-badge" id="role-badge">
+              對話 · 介紹服務 · 回覆一般問題
             </div>
           </div>
 
-          <!-- 角色選擇列 -->
-          <div class="role-tabs" id="role-tabs">
-            <!-- JS 會填入 -->
-          </div>
+          <!-- 角色 tabs -->
+          <div class="role-tabs" id="role-tabs"></div>
 
           <!-- 對話框 -->
-          <div class="chat-box" id="chat-box">
-            <!-- JS 會填入初始訊息 -->
-          </div>
+          <div class="chat-box" id="chat-box"></div>
 
           <!-- 範例問題 -->
           <div class="quick-questions" id="quick-questions"></div>
@@ -67,8 +63,6 @@
       </main>
     </div>
 
-    <!-- Phaser -->
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
     <script src="/app.js"></script>
     <script src="/game.js"></script>
   </body>
