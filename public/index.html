@@ -5,6 +5,9 @@
     <title>C.H AI TOWN</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/style.css" />
+
+    <!-- ① 先載入 Phaser，引擎不再缺失 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
   </head>
   <body>
     <div class="page">
@@ -20,9 +23,9 @@
       </header>
 
       <main class="layout">
-        <!-- 左：2D 小鎮（原生 canvas） -->
+        <!-- 左：2D 小鎮（這裡改成 game-root，給 Phaser 掛載） -->
         <section class="town-panel">
-          <canvas id="town-canvas" class="game-root"></canvas>
+          <div id="game-root" class="game-root"></div>
           <div class="town-hint">
             💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
           </div>
@@ -63,7 +66,10 @@
       </main>
     </div>
 
+    <!-- ② app.js：處理右邊所有角色對話與 roleId（這個檔你已經是新版了） -->
     <script src="/app.js"></script>
+
+    <!-- ③ game.js：啟動小鎮遊戲，現在會找到 id="game-root" -->
     <script src="/game.js"></script>
   </body>
 </html>
