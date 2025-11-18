@@ -238,3 +238,23 @@ body {
 .chip:hover {
   background: rgba(148, 150, 214, 0.18);
 }
+
+/* 2D 小鎮畫面設定 */
+.town-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-root {
+  flex: 1;
+  min-height: 420px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(circle at top, #202544 0%, #050814 60%);
+}
+
+.game-root canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}

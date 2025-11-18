@@ -1,5 +1,5 @@
 // public/game.js
-// 簡單 2D 小鎮：有道路、房子、倉庫，角色可用鍵盤或點擊移動
+// C.H AI Town 2D 小鎮：有道路、房子、倉庫，角色可用鍵盤或點擊移動
 
 (function () {
   const GAME_ROOT_ID = "game-root";
@@ -10,7 +10,7 @@
       parent: GAME_ROOT_ID,
       width,
       height,
-      backgroundColor: "#05050a",
+      backgroundColor: "#0b1020",
       physics: {
         default: "arcade",
         arcade: {
@@ -28,123 +28,95 @@
       this.player = null;
       this.cursors = null;
       this.moveTarget = null;
+      this.playerAura = null;
+      this.playerLabel = null;
     }
 
     create() {
       const w = this.scale.width;
       const h = this.scale.height;
 
-      // 背景漸層
-      const bg = this.add.rectangle(w / 2, h / 2, w, h, 0x111322);
-      bg.setStrokeStyle(1, 0x26283c);
+      // ===== 背景漸層感（用幾個半透明矩形疊出來） =====
+      const bgBase = this.add.rectangle(w / 2, h / 2, w, h, 0x13162a);
+      const bgGlow = this.add.rectangle(w / 2, h * 0.3, w * 0.8, h * 0.6, 0x22294b, 0.9);
+      const bgBottom = this.add.rectangle(w / 2, h * 0.9, w * 0.8, h * 0.3, 0x181b33, 0.9);
 
-      // 道路（中間一條橫路 + 一條直路）
-      const roadH = this.add.rectangle(
-        w / 2,
-        h * 0.55,
-        w * 0.85,
-        46,
-        0x1c1f30
-      );
-      roadH.setStrokeStyle(1, 0x2f3348);
+      bgBase.setStrokeStyle(1, 0x2c3152);
+      bgGlow.setStrokeStyle(1, 0x363d66);
+      bgBottom.setStrokeStyle(1, 0x363d66);
 
-      const roadV = this.add.rectangle(
-        w * 0.3,
-        h * 0.52,
-        40,
-        h * 0.7,
-        0x1c1f30
-      );
-      roadV.setStrokeStyle(1, 0x2f3348);
+      // ===== 道路（中間橫線 + 左側縱線） =====
+      const roadColor = 0x1e2238;
 
-      // 地塊 / 草地
-      this.add.rectangle(
-        w * 0.72,
-        h * 0.28,
-        w * 0.38,
-        h * 0.32,
-        0x171a2b
-      ).setStrokeStyle(1, 0x303452);
+      const roadH = this.add.rectangle(w / 2, h * 0.58, w * 0.86, 52, roadColor);
+      roadH.setStrokeStyle(1, 0x3b4262);
 
-      this.add.rectangle(
-        w * 0.72,
-        h * 0.8,
-        w * 0.38,
-        h * 0.25,
-        0x171a2b
-      ).setStrokeStyle(1, 0x303452);
+      const roadV = this.add.rectangle(w * 0.28, h * 0.5, 46, h * 0.7, roadColor);
+      roadV.setStrokeStyle(1, 0x3b4262);
 
-      // 建築：門市、整理區 / 倉庫、外送區
+      // ===== 草地區塊 =====
+      this.add.rectangle(w * 0.7, h * 0.26, w * 0.4, h * 0.3, 0x182433).setStrokeStyle(1, 0x335a7a);
+      this.add.rectangle(w * 0.7, h * 0.82, w * 0.4, h * 0.26, 0x182433).setStrokeStyle(1, 0x335a7a);
+
+      // ===== 建築：門市、整理區 / 倉庫、外送集散點 =====
       this._createBuilding({
-        x: w * 0.72,
-        y: h * 0.26,
-        width: w * 0.22,
+        x: w * 0.7,
+        y: h * 0.25,
+        width: w * 0.24,
         height: h * 0.18,
         color: 0x252842,
         border: 0xff8fb6,
         title: "C.H 門市",
         subtitle: "櫃檯接待 · 諮詢",
+        icon: "🏪",
       });
 
       this._createBuilding({
-        x: w * 0.72,
-        y: h * 0.76,
-        width: w * 0.24,
+        x: w * 0.7,
+        y: h * 0.8,
+        width: w * 0.26,
         height: h * 0.18,
         color: 0x252842,
         border: 0xffc96b,
         title: "整理區 / 倉庫",
         subtitle: "分類 · 包裝 · 入庫",
+        icon: "📦",
       });
 
       this._createBuilding({
         x: w * 0.28,
-        y: h * 0.18,
-        width: w * 0.23,
-        height: h * 0.15,
+        y: h * 0.2,
+        width: w * 0.24,
+        height: h * 0.16,
         color: 0x252842,
         border: 0x7ad3ff,
         title: "外送集散點",
         subtitle: "出車 · 回件",
+        icon: "🚚",
       });
 
-      // 小小指示牌
-      const guide = this.add.text(
-        w * 0.08,
-        h * 0.08,
-        "👣 點擊任一區域\n角色會走過去",
-        {
-          fontSize: 12,
-          color: "#f5f5ff",
-        }
-      );
-      guide.setAlpha(0.92);
+      // 小指示牌
+      this.add.text(w * 0.08, h * 0.08, "👣 點一下小鎮任一位置\n角色會走過去", {
+        fontSize: 12,
+        color: "#f4f5ff",
+        lineSpacing: 4,
+      });
 
-      // 角色（主角）
-      this.player = this.physics.add.circle(w * 0.3, h * 0.55, 14, 0xff8fb6);
+      // ===== 主角（你） =====
+      this.player = this.physics.add.circle(w * 0.3, h * 0.58, 15, 0xff8fb6);
       this.player.setStrokeStyle(2, 0xffffff);
       this.player.body.setCollideWorldBounds(true);
 
-      // 角色外框光暈
-      const aura = this.add.circle(
-        this.player.x,
-        this.player.y,
-        22,
-        0xff8fb6,
-        0.18
-      );
-      this.playerAura = aura;
+      // 光暈
+      this.playerAura = this.add.circle(this.player.x, this.player.y, 24, 0xff8fb6, 0.2);
 
-      // 名稱標籤
-      this.playerLabel = this.add.text(
-        this.player.x,
-        this.player.y - 26,
-        "你",
-        {
+      // 名稱
+      this.playerLabel = this.add
+        .text(this.player.x, this.player.y - 26, "你", {
           fontSize: 12,
           color: "#ffffff",
-        }
-      ).setOrigin(0.5, 1);
+        })
+        .setOrigin(0.5, 1);
 
       // 鍵盤
       this.cursors = this.input.keyboard.createCursorKeys();
@@ -156,23 +128,35 @@
     }
 
     _createBuilding(cfg) {
-      const { x, y, width, height, color, border, title, subtitle } = cfg;
-      const rect = this.add.rectangle(x, y, width, height, color, 1);
-      rect.setStrokeStyle(2, border);
-      rect.setShadow(0, 0, border, 12, false, true);
+      const { x, y, width, height, color, border, title, subtitle, icon } = cfg;
 
-      this.add.rectangle(x, y - height * 0.32, width * 0.6, 18, border, 0.9)
-        .setStrokeStyle(1, 0xffffff);
+      const base = this.add.rectangle(x, y, width, height, color);
+      base.setStrokeStyle(2, border);
 
-      this.add.text(x, y - height * 0.33, title, {
-        fontSize: 12,
-        color: "#050509",
-      }).setOrigin(0.5, 0.5);
+      // 上方招牌
+      const sign = this.add.rectangle(x, y - height * 0.33, width * 0.7, 20, border, 1);
+      sign.setStrokeStyle(1, 0xffffff);
 
-      this.add.text(x, y + height * 0.05, subtitle, {
-        fontSize: 11,
-        color: "#e3e4ff",
-      }).setOrigin(0.5, 0.5);
+      this.add
+        .text(x, y - height * 0.34, `${icon}  ${title}`, {
+          fontSize: 12,
+          color: "#111111",
+        })
+        .setOrigin(0.5, 0.5);
+
+      this.add
+        .text(x, y + height * 0.02, subtitle, {
+          fontSize: 11,
+          color: "#e4e6ff",
+        })
+        .setOrigin(0.5, 0.5);
+
+      // 窗戶
+      const winW = width * 0.18;
+      const winH = height * 0.28;
+      this.add.rectangle(x - width * 0.22, y + height * 0.05, winW, winH, 0x34425f).setStrokeStyle(1, 0x6073a2);
+      this.add.rectangle(x - width * 0.05, y + height * 0.05, winW, winH, 0x34425f).setStrokeStyle(1, 0x6073a2);
+      this.add.rectangle(x + width * 0.12, y + height * 0.05, winW, winH, 0x34425f).setStrokeStyle(1, 0x6073a2);
     }
 
     update() {
@@ -183,7 +167,7 @@
 
       body.setVelocity(0);
 
-      // 鍵盤移動優先
+      // 鍵盤移動（優先）
       if (this.cursors.left.isDown) {
         body.setVelocityX(-speed);
         this.moveTarget = null;
@@ -200,7 +184,7 @@
         this.moveTarget = null;
       }
 
-      // 點擊自動移動
+      // 點擊自動走路
       if (this.moveTarget) {
         const dx = this.moveTarget.x - this.player.x;
         const dy = this.moveTarget.y - this.player.y;
@@ -219,38 +203,37 @@
       // Clamp 邊界
       const w = this.scale.width;
       const h = this.scale.height;
-      this.player.x = Phaser.Math.Clamp(this.player.x, 20, w - 20);
-      this.player.y = Phaser.Math.Clamp(this.player.y, 20, h - 20);
+      this.player.x = Phaser.Math.Clamp(this.player.x, 24, w - 24);
+      this.player.y = Phaser.Math.Clamp(this.player.y, 24, h - 24);
 
-      // 更新光暈 & 名稱位置
+      // 更新光暈 & 標籤
       if (this.playerAura) {
         this.playerAura.x = this.player.x;
         this.playerAura.y = this.player.y;
       }
       if (this.playerLabel) {
         this.playerLabel.x = this.player.x;
-        this.playerLabel.y = this.player.y - 22;
+        this.playerLabel.y = this.player.y - 24;
       }
     }
   }
 
-  // ---- 初始化 Game（依照畫面大小） ----
+  // ===== 啟動遊戲 =====
   function boot() {
     const root = document.getElementById(GAME_ROOT_ID);
     if (!root) return;
 
     const rect = root.getBoundingClientRect();
     const width = Math.max(320, rect.width || 480);
-    const height = Math.max(260, rect.height || 360);
+    const height = Math.max(320, rect.height || 420);
 
     const config = createGameConfig(width, height);
     const game = new Phaser.Game(config);
 
-    // 視窗大小變更時調整
     window.addEventListener("resize", () => {
       const r = root.getBoundingClientRect();
       const w = Math.max(320, r.width || 480);
-      const h = Math.max(260, r.height || 360);
+      const h = Math.max(320, r.height || 420);
       game.scale.resize(w, h);
     });
   }
