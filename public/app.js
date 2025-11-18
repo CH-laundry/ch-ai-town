@@ -48,7 +48,7 @@
       name: "外送員",
       icon: "🚚",
       avatar: "/images/role-delivery.png",
-      badge: "收送時間 · 區域與聯絡相關問題",
+      badge: "收送時間 · 区域與聯絡相關問題",
       samples: ["板橋收送大概什麼時間可以到？", "可以幫我改送回時間嗎？"],
     },
   ];
@@ -195,6 +195,11 @@
     renderQuickQuestions();
     renderConversation();
   }
+
+  // ⭐ 給小鎮地圖用：點建築 → 切換角色
+  window.chTownSwitchRoleFromMap = function (roleId) {
+    switchRole(roleId);
+  };
 
   // ===== 10. 綁定輸入表單 =====
   chatFormEl.addEventListener("submit", (e) => {

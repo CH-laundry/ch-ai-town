@@ -1,318 +1,261 @@
 // public/game.js
-// C.H AI Town - 純原生 Canvas 版本，不再依賴 Phaser
+// C.H AI Town 小鎮：大地圖 + 點建築切換角色
 
 (function () {
-  const GAME_ROOT_ID = "game-root";
+  const ROOT_ID = "game-root";
 
-  const state = {
-    playerX: 0,
-    playerY: 0,
-    targetX: 0,
-    targetY: 0,
-    speed: 4,
-    canvas: null,
-    ctx: null,
-    animationId: null,
-  };
+  function boot() {
+    const root = document.getElementById(ROOT_ID);
+    if (!root) return;
 
-  function createCanvas(root) {
-    const canvas = document.createElement("canvas");
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    canvas.style.display = "block";
+    const width = root.clientWidth || 520;
+    const height = root.clientHeight || 520;
 
-    root.innerHTML = "";
-    root.appendChild(canvas);
+    const config = {
+      type: Phaser.AUTO,
+      parent: ROOT_ID,
+      width,
+      height,
+      backgroundColor: "#0b1020",
+      scene: {
+        create,
+        update,
+      },
+    };
 
-    // ✅ 關鍵修正：先把 state.canvas 設好，下面 drawScene 才有東西可畫
-    state.canvas = canvas;
+    const game = new Phaser.Game(config);
 
-    resizeCanvas(canvas, root);
-    return canvas;
-  }
+    function create() {
+      const scene = this;
+      const w = scene.scale.width;
+      const h = scene.scale.height;
+      const centerX = w / 2;
+      const centerY = h / 2;
 
-  function resizeCanvas(canvas, root) {
-    if (!canvas) return;
+      // 背景區塊
+      const bg = scene.add
+        .rectangle(centerX, centerY, w * 0.96, h * 0.96, 0x151933)
+        .setStrokeStyle(2, 0x343b5d);
+      bg.setOrigin(0.5, 0.5);
 
-    const rect = root.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const width = Math.max(320, rect.width || 480);
-    const height = Math.max(320, rect.height || 420);
+      // 馬路 – 垂直
+      const roadWidth = w * 0.08;
+      scene.add
+        .rectangle(centerX, centerY, roadWidth, h * 0.8, 0x22263d)
+        .setStrokeStyle(1, 0x3a415d);
 
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
+      // 馬路 – 水平（上方）
+      scene.add
+        .rectangle(centerX, h * 0.42, w * 0.8, roadWidth * 0.72, 0x22263d)
+        .setStrokeStyle(1, 0x3a415d);
 
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    state.ctx = ctx;
+      // 虛線
+      const dashCount = 7;
+      const dashLen = (w * 0.8) / (dashCount * 2);
+      for (let i = 0; i < dashCount; i++) {
+        const x = centerX - (w * 0.8) / 2 + dashLen / 2 + i * dashLen * 2;
+        scene.add.rectangle(x, h * 0.42, dashLen, 3, 0x4a536f);
+      }
 
-    // 初始化玩家在中間偏下
-    state.playerX = width * 0.5;
-    state.playerY = height * 0.55;
-    state.targetX = state.playerX;
-    state.targetY = state.playerY;
+      // === 建築工廠函式 ===
+      function createBuilding(opts) {
+        const { x, y, color, title, subtitle, onClick } = opts;
+        const width = w * 0.22;
+        const height = h * 0.18;
 
-    drawScene();
-  }
+        const container = scene.add.container(x, y);
 
-  function drawScene() {
-    const ctx = state.ctx;
-    const canvas = state.canvas;
-    if (!ctx || !canvas) return; // 再加一層保護
+        const base = scene.add
+          .rectangle(0, 0, width, height, color)
+          .setOrigin(0.5, 0.5)
+          .setStrokeStyle(3, 0x192034);
+        base.setRadius?.(14);
 
-    const rect = canvas.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
+        const roof = scene.add
+          .rectangle(0, -height * 0.38, width * 0.9, height * 0.25, 0x111324)
+          .setOrigin(0.5, 0.5);
 
-    ctx.clearRect(0, 0, w, h);
+        const door = scene.add.rectangle(
+          0,
+          height * 0.05,
+          width * 0.16,
+          height * 0.3,
+          0x111324
+        );
+        const winLeft = scene.add.rectangle(
+          -width * 0.22,
+          -height * 0.05,
+          width * 0.16,
+          height * 0.2,
+          0x111324
+        );
+        const winRight = scene.add.rectangle(
+          width * 0.22,
+          -height * 0.05,
+          width * 0.16,
+          height * 0.2,
+          0x111324
+        );
 
-    // 背景漸層
-    const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, "#181b32");
-    gradient.addColorStop(0.5, "#111528");
-    gradient.addColorStop(1, "#050712");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, w, h);
+        const titleText = scene.add
+          .text(0, -height * 0.45, title, {
+            fontSize: 14,
+            color: "#fdf2ff",
+            fontStyle: "700",
+          })
+          .setOrigin(0.5, 0.5);
 
-    // 下半部平台
-    ctx.fillStyle = "#15172b";
-    roundRect(ctx, w * 0.05, h * 0.55, w * 0.9, h * 0.35, 20, true, false);
+        const subtitleText = scene.add
+          .text(0, height * 0.42, subtitle, {
+            fontSize: 11,
+            color: "#cfd4ff",
+          })
+          .setOrigin(0.5, 0.5);
 
-    // 道路
-    ctx.fillStyle = "#2b304e";
-    // 上橫路
-    roundRect(ctx, w * 0.15, h * 0.25, w * 0.7, 40, 18, true, false);
-    // 直路
-    roundRect(ctx, w * 0.45, h * 0.25, 40, h * 0.45, 18, true, false);
+        container.add([
+          base,
+          roof,
+          door,
+          winLeft,
+          winRight,
+          titleText,
+          subtitleText,
+        ]);
 
-    // 中線
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 4;
-    ctx.setLineDash([18, 16]);
-    ctx.beginPath();
-    ctx.moveTo(w * 0.16, h * 0.45);
-    ctx.lineTo(w * 0.84, h * 0.45);
-    ctx.stroke();
-    ctx.setLineDash([]);
+        // 點擊範圍
+        const hit = scene.add
+          .rectangle(0, 0, width * 1.05, height * 1.1, 0xffffff, 0)
+          .setOrigin(0.5, 0.5)
+          .setInteractive({ useHandCursor: true });
 
-    // 建築 - 門市
-    drawBuilding(
-      ctx,
-      w * 0.18,
-      h * 0.18,
-      120,
-      90,
-      "#fb6b7d",
-      "#ffb3c1",
-      "C.H 門市"
-    );
+        hit.on("pointerdown", () => {
+          if (typeof onClick === "function") onClick();
+          // 小小的閃動效果
+          scene.tweens.add({
+            targets: container,
+            scaleX: 1.03,
+            scaleY: 1.03,
+            yoyo: true,
+            duration: 120,
+            ease: "Quad.easeInOut",
+          });
+        });
 
-    // 建築 - 整燙 / 整理區
-    drawBuilding(
-      ctx,
-      w * 0.6,
-      h * 0.16,
-      130,
-      95,
-      "#3b82f6",
-      "#93c5fd",
-      "整燙 / 整理"
-    );
+        container.add(hit);
+        return container;
+      }
 
-    // 建築 - 倉庫 / 收送
-    drawBuilding(
-      ctx,
-      w * 0.12,
-      h * 0.6,
-      130,
-      85,
-      "#22c55e",
-      "#a7f3d0",
-      "收送倉庫"
-    );
+      // === 建築：對應角色 ===
+      createBuilding({
+        x: centerX - w * 0.22,
+        y: h * 0.24,
+        color: 0xff6b81,
+        title: "C.H 門市",
+        subtitle: "接待 · 一般諮詢",
+        onClick: () => {
+          if (window.chTownSwitchRoleFromMap) {
+            window.chTownSwitchRoleFromMap("chCustomerService");
+          }
+        },
+      });
 
-    // 玩家
-    drawPlayer(ctx, state.playerX, state.playerY);
+      createBuilding({
+        x: centerX + w * 0.22,
+        y: h * 0.24,
+        color: 0x4f7dff,
+        title: "整燙 / 整理",
+        subtitle: "西裝 · 禮服整燙",
+        onClick: () => {
+          if (window.chTownSwitchRoleFromMap) {
+            window.chTownSwitchRoleFromMap("ironingMaster");
+          }
+        },
+      });
 
-    // 玩家名標籤
-    ctx.fillStyle = "rgba(15,23,42,0.9)";
-    roundRect(
-      ctx,
-      state.playerX - 42,
-      state.playerY + 26,
-      84,
-      22,
-      11,
-      true,
-      false
-    );
-    ctx.fillStyle = "#f9fafb";
-    ctx.font = "12px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("你在這裡", state.playerX, state.playerY + 37);
-  }
+      createBuilding({
+        x: centerX - w * 0.22,
+        y: h * 0.7,
+        color: 0x32c872,
+        title: "收送倉庫",
+        subtitle: "外送 · 收送調度",
+        onClick: () => {
+          if (window.chTownSwitchRoleFromMap) {
+            window.chTownSwitchRoleFromMap("deliveryStaff");
+          }
+        },
+      });
 
-  function drawPlayer(ctx, x, y) {
-    // 外圈
-    ctx.beginPath();
-    ctx.arc(x, y, 20, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff7b93";
-    ctx.fill();
+      // === 主角圓點 ===
+      const startX = centerX;
+      const startY = h * 0.55;
 
-    // 內圈
-    ctx.beginPath();
-    ctx.arc(x, y, 12, 0, Math.PI * 2);
-    ctx.fillStyle = "#fee2e2";
-    ctx.fill();
-  }
+      const outer = scene.add.circle(startX, startY, 11, 0xff86a0);
+      const inner = scene.add.circle(startX, startY, 5, 0xffffff);
+      const playerGroup = scene.add.container(0, 0, [outer, inner]);
+      playerGroup.x = startX;
+      playerGroup.y = startY;
 
-  function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-    if (typeof stroke === "undefined") stroke = false;
-    if (typeof radius === "undefined") radius = 5;
+      scene.player = playerGroup;
+      scene.playerTarget = null;
 
-    if (typeof radius === "number") {
-      radius = { tl: radius, tr: radius, br: radius, bl: radius };
-    } else {
-      const defaultRadius = { tl: 0, tr: 0, br: 0, bl: 0 };
-      for (let side in defaultRadius) {
-        radius[side] = radius[side] || defaultRadius[side];
+      // 點擊地圖：走到該位置
+      scene.input.on("pointerdown", (pointer) => {
+        const localY = Phaser.Math.Clamp(
+          pointer.y,
+          h * 0.16,
+          h * 0.82
+        );
+        const localX = Phaser.Math.Clamp(
+          pointer.x,
+          centerX - w * 0.38,
+          centerX + w * 0.38
+        );
+        scene.playerTarget = { x: localX, y: localY };
+      });
+
+      // 鍵盤方向鍵
+      scene.cursors = scene.input.keyboard.createCursorKeys();
+    }
+
+    function update(time, delta) {
+      const scene = this;
+      const player = scene.player;
+      if (!player) return;
+
+      const speed = 0.22 * delta; // 每 frame 位移
+
+      let vx = 0;
+      let vy = 0;
+
+      if (scene.cursors?.left.isDown) vx -= speed;
+      if (scene.cursors?.right.isDown) vx += speed;
+      if (scene.cursors?.up.isDown) vy -= speed;
+      if (scene.cursors?.down.isDown) vy += speed;
+
+      if (vx !== 0 || vy !== 0) {
+        scene.playerTarget = null;
+        player.x += vx;
+        player.y += vy;
+      } else if (scene.playerTarget) {
+        const dx = scene.playerTarget.x - player.x;
+        const dy = scene.playerTarget.y - player.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 2) {
+          scene.playerTarget = null;
+        } else {
+          player.x += (dx / dist) * speed;
+          player.y += (dy / dist) * speed;
+        }
       }
     }
 
-    ctx.beginPath();
-    ctx.moveTo(x + radius.tl, y);
-    ctx.lineTo(x + width - radius.tr, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
-    ctx.lineTo(x + width, y + height - radius.br);
-    ctx.quadraticCurveTo(
-      x + width,
-      y + height,
-      x + width - radius.br,
-      y + height
-    );
-    ctx.lineTo(x + radius.bl, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
-    ctx.lineTo(x, y + radius.tl);
-    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
-    ctx.closePath();
-
-    if (fill) ctx.fill();
-    if (stroke) ctx.stroke();
-  }
-
-  function drawBuilding(ctx, x, y, w, h, colorMain, colorAccent, label) {
-    ctx.fillStyle = colorMain;
-    roundRect(ctx, x, y, w, h, 16, true, false);
-
-    // 屋頂
-    ctx.fillStyle = "rgba(15,23,42,0.9)";
-    roundRect(ctx, x + 8, y + 6, w - 16, 18, 10, true, false);
-
-    // 門
-    ctx.fillStyle = colorAccent;
-    roundRect(ctx, x + w * 0.4, y + h * 0.45, w * 0.22, h * 0.4, 10, true, false);
-
-    // 小窗
-    ctx.fillStyle = "rgba(15,23,42,0.95)";
-    roundRect(ctx, x + 12, y + 32, 26, 22, 6, true, false);
-    roundRect(ctx, x + w - 38, y + 32, 26, 22, 6, true, false);
-
-    // 標籤文字
-    ctx.fillStyle = "#f9fafb";
-    ctx.font = "12px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, x + w / 2, y + h + 14);
-  }
-
-  function step() {
-    const canvas = state.canvas;
-    const ctx = state.ctx;
-    if (!canvas || !ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
-
-    // 移動玩家 toward 目標點
-    const dx = state.targetX - state.playerX;
-    const dy = state.targetY - state.playerY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist > 1) {
-      const vx = (dx / dist) * state.speed;
-      const vy = (dy / dist) * state.speed;
-      state.playerX += vx;
-      state.playerY += vy;
-
-      // 簡單邊界限制
-      state.playerX = Math.min(Math.max(w * 0.08, state.playerX), w * 0.92);
-      state.playerY = Math.min(Math.max(h * 0.2, state.playerY), h * 0.88);
-    }
-
-    drawScene();
-    state.animationId = requestAnimationFrame(step);
-  }
-
-  function handleClick(evt) {
-    const canvas = state.canvas;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = evt.clientX - rect.left;
-    const y = evt.clientY - rect.top;
-    state.targetX = x;
-    state.targetY = y;
-  }
-
-  function handleKeydown(evt) {
-    const key = evt.key;
-    const stepDelta = 18;
-
-    switch (key) {
-      case "ArrowUp":
-      case "w":
-      case "W":
-        state.targetY = state.playerY - stepDelta;
-        break;
-      case "ArrowDown":
-      case "s":
-      case "S":
-        state.targetY = state.playerY + stepDelta;
-        break;
-      case "ArrowLeft":
-      case "a":
-      case "A":
-        state.targetX = state.playerX - stepDelta;
-        break;
-      case "ArrowRight":
-      case "d":
-      case "D":
-        state.targetX = state.playerX + stepDelta;
-        break;
-      default:
-        return;
-    }
-  }
-
-  function boot() {
-    const root = document.getElementById(GAME_ROOT_ID);
-    if (!root) return;
-
-    state.canvas = createCanvas(root);
-
+    // 視窗 resize：讓 canvas 跟著 panel 大小走
     window.addEventListener("resize", () => {
-      if (!state.canvas) return;
-      resizeCanvas(state.canvas, root);
+      const r = root.getBoundingClientRect();
+      const w2 = Math.max(320, r.width || width);
+      const h2 = Math.max(320, r.height || height);
+      game.scale.resize(w2, h2);
     });
-
-    if (state.canvas) {
-      state.canvas.addEventListener("click", handleClick);
-    }
-    window.addEventListener("keydown", handleKeydown);
-
-    if (state.animationId) cancelAnimationFrame(state.animationId);
-    step();
   }
 
   if (
