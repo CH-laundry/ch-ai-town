@@ -2,79 +2,97 @@
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
-    <title>C.H AI TOWN</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C.H AI TOWN</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
+
   <body>
-    <div class="page">
-      <!-- 上方品牌列 -->
-      <header class="topbar">
-        <div class="brand">
-          <div class="brand-logo">C.H</div>
-          <div class="brand-text">
-            <div class="brand-title">AI TOWN</div>
-            <div class="brand-sub">洗衣 · 洗鞋 · 精品包 · 外送小鎮</div>
+    <header class="header">
+      <div class="logo-area">
+        <img src="/images/ch-logo.png" class="logo" />
+        <div class="title">
+          <strong>AI TOWN</strong>
+          <span>洗衣・鞋類・精品包・外送小鎮</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-layout">
+      <!-- 左側：小鎮地圖 -->
+      <section class="town-panel">
+        <canvas id="town-canvas"></canvas>
+
+        <div class="hint">
+          💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會自動走過去。
+        </div>
+      </section>
+
+      <!-- 右側：聊天 / 角色區域 -->
+      <section class="chat-panel">
+        <div class="chat-header">
+          <div class="active-role">
+            <img id="activeRoleAvatar" class="role-avatar" src="/images/role-cs.png" />
+            <div class="role-info">
+              <div id="activeRoleName" class="role-name">C.H 客服</div>
+              <div id="activeRoleDesc" class="role-desc">對話：介紹服務、回覆一般問題</div>
+            </div>
           </div>
         </div>
-      </header>
 
-      <main class="layout">
-        <!-- 左邊：大地圖 -->
-        <section class="town-panel">
-          <div id="game-root" class="game-root"></div>
-          <div class="town-hint">
-            💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
-          </div>
-        </section>
+        <!-- 角色切換列 -->
+        <div class="role-tabs">
+          <button class="role-tab active" data-role="chCustomerService">
+            <img src="/images/role-cs.png" />
+            <span>C.H 客服</span>
+          </button>
 
-        <!-- 右邊：AI 對話 -->
-        <section class="chat-panel">
-          <!-- 角色標頭：頭像 + 名稱 + badge -->
-          <div class="role-header">
-            <div class="role-main">
-              <div class="role-avatar">
-                <img
-                  id="role-avatar-img"
-                  src="/images/role-cs.png"
-                  alt="角色頭像"
-                />
-              </div>
-              <div class="role-info">
-                <div class="role-label">當前角色</div>
-                <div id="current-role-name" class="role-name">C.H 客服</div>
-              </div>
-            </div>
+          <button class="role-tab" data-role="shopManager">
+            <img src="/images/role-manager.png" />
+            <span>店長</span>
+          </button>
 
-            <div class="role-badge" id="role-badge">
-              對話 · 介紹服務 · 回覆一般問題
-            </div>
-          </div>
+          <button class="role-tab" data-role="cleanerMaster">
+            <img src="/images/role-cleaner.png" />
+            <span>清潔師傅</span>
+          </button>
 
-          <!-- 角色切換 tabs -->
-          <div class="role-tabs" id="role-tabs"></div>
+          <button class="role-tab" data-role="ironingMaster">
+            <img src="/images/role-ironing.png" />
+            <span>熨燙師傅</span>
+          </button>
 
-          <!-- 對話內容 -->
-          <div class="chat-box" id="chat-box"></div>
+          <button class="role-tab" data-role="deliveryStaff">
+            <img src="/images/role-delivery.png" />
+            <span>外送員</span>
+          </button>
+        </div>
 
-          <!-- 範例問題 -->
-          <div class="quick-questions" id="quick-questions"></div>
+        <!-- 訊息顯示 -->
+        <div id="chatMessages" class="chat-messages"></div>
 
-          <!-- 輸入區 -->
-          <form id="chat-form" class="input-area">
-            <input
-              id="user-input"
-              type="text"
-              placeholder="輸入想問這個角色的問題，例如：這個油漬有機會洗乾淨嗎？"
-              autocomplete="off"
-            />
-            <button type="submit">送出</button>
-          </form>
-        </section>
-      </main>
-    </div>
+        <!-- 快捷按鈕 -->
+        <div id="quickReplies" class="quick-replies"></div>
 
+        <!-- 輸入區 -->
+        <div class="input-area">
+          <input
+            type="text"
+            id="chatInput"
+            placeholder="輸入想問這個角色的問題，例如：這個油漬有機會洗乾淨嗎？"
+          />
+          <button id="sendBtn">送出</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 必須先載入 Phaser（左側地圖用） -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+
+    <!-- app.js（角色、聊天室邏輯） -->
     <script src="/app.js"></script>
+
+    <!-- game.js（小鎮、移動、點建築 = 換角色） -->
     <script src="/game.js"></script>
   </body>
 </html>
