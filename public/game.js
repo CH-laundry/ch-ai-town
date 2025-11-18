@@ -1,209 +1,289 @@
 // public/game.js
-// C.H AI Town 2D 小鎮：有道路、房子、倉庫，角色可用鍵盤或點擊移動
+// C.H AI Town - 純原生 Canvas 版本，不再依賴 Phaser
 
 (function () {
   const GAME_ROOT_ID = "game-root";
 
-  function createGameConfig(width, height) {
-    return {
-      type: Phaser.AUTO,
-      parent: GAME_ROOT_ID,
-      width,
-      height,
-      backgroundColor: "#0b1020",
-      physics: {
-        default: "arcade",
-        arcade: {
-          gravity: { y: 0 },
-          debug: false,
-        },
-      },
-      scene: [TownScene],
-    };
+  const state = {
+    playerX: 0,
+    playerY: 0,
+    targetX: 0,
+    targetY: 0,
+    speed: 4,
+    canvas: null,
+    ctx: null,
+    animationId: null,
+  };
+
+  function createCanvas(root) {
+    const canvas = document.createElement("canvas");
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.display = "block";
+    root.innerHTML = "";
+    root.appendChild(canvas);
+    resizeCanvas(canvas, root);
+    return canvas;
   }
 
-  class TownScene extends Phaser.Scene {
-    constructor() {
-      super("TownScene");
-      this.player = null;
-      this.cursors = null;
-      this.moveTarget = null;
-      this.playerAura = null;
-      this.playerLabel = null;
+  function resizeCanvas(canvas, root) {
+    const rect = root.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(320, rect.width || 480);
+    const height = Math.max(320, rect.height || 420);
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    state.ctx = ctx;
+
+    // 初始化玩家在中間偏下
+    state.playerX = width * 0.5;
+    state.playerY = height * 0.55;
+    state.targetX = state.playerX;
+    state.targetY = state.playerY;
+
+    drawScene();
+  }
+
+  function drawScene() {
+    const ctx = state.ctx;
+    if (!ctx) return;
+    const canvas = state.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 背景漸層
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, "#181b32");
+    gradient.addColorStop(0.5, "#111528");
+    gradient.addColorStop(1, "#050712");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+
+    // 下半部平台
+    ctx.fillStyle = "#15172b";
+    roundRect(ctx, w * 0.05, h * 0.55, w * 0.9, h * 0.35, 20, true, false);
+
+    // 道路
+    ctx.fillStyle = "#2b304e";
+    // 上橫路
+    roundRect(ctx, w * 0.15, h * 0.25, w * 0.7, 40, 18, true, false);
+    // 直路
+    roundRect(ctx, w * 0.45, h * 0.25, 40, h * 0.45, 18, true, false);
+
+    // 中線
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([18, 16]);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.16, h * 0.45);
+    ctx.lineTo(w * 0.84, h * 0.45);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 建築 - 門市
+    drawBuilding(
+      ctx,
+      w * 0.18,
+      h * 0.18,
+      120,
+      90,
+      "#fb6b7d",
+      "#ffb3c1",
+      "C.H 門市"
+    );
+
+    // 建築 - 整燙 / 整理區
+    drawBuilding(
+      ctx,
+      w * 0.6,
+      h * 0.16,
+      130,
+      95,
+      "#3b82f6",
+      "#93c5fd",
+      "整燙 / 整理"
+    );
+
+    // 建築 - 倉庫 / 收送
+    drawBuilding(
+      ctx,
+      w * 0.12,
+      h * 0.6,
+      130,
+      85,
+      "#22c55e",
+      "#a7f3d0",
+      "收送倉庫"
+    );
+
+    // 玩家
+    drawPlayer(ctx, state.playerX, state.playerY);
+
+    // 玩家名標籤
+    ctx.fillStyle = "rgba(15,23,42,0.9)";
+    roundRect(
+      ctx,
+      state.playerX - 42,
+      state.playerY + 26,
+      84,
+      22,
+      11,
+      true,
+      false
+    );
+    ctx.fillStyle = "#f9fafb";
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("你在這裡", state.playerX, state.playerY + 37);
+  }
+
+  function drawPlayer(ctx, x, y) {
+    // 外圈
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff7b93";
+    ctx.fill();
+
+    // 內圈
+    ctx.beginPath();
+    ctx.arc(x, y, 12, 0, Math.PI * 2);
+    ctx.fillStyle = "#fee2e2";
+    ctx.fill();
+  }
+
+  function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+    if (typeof stroke === "undefined") stroke = false;
+    if (typeof radius === "undefined") radius = 5;
+
+    if (typeof radius === "number") {
+      radius = { tl: radius, tr: radius, br: radius, bl: radius };
+    } else {
+      const defaultRadius = { tl: 0, tr: 0, br: 0, bl: 0 };
+      for (let side in defaultRadius) {
+        radius[side] = radius[side] || defaultRadius[side];
+      }
     }
 
-    create() {
-      const w = this.scale.width;
-      const h = this.scale.height;
+    ctx.beginPath();
+    ctx.moveTo(x + radius.tl, y);
+    ctx.lineTo(x + width - radius.tr, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+    ctx.lineTo(x + width, y + height - radius.br);
+    ctx.quadraticCurveTo(
+      x + width,
+      y + height,
+      x + width - radius.br,
+      y + height
+    );
+    ctx.lineTo(x + radius.bl, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+    ctx.lineTo(x, y + radius.tl);
+    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+    ctx.closePath();
 
-      // 背景
-      const bgBase = this.add.rectangle(w / 2, h / 2, w, h, 0x13162a);
-      const bgGlow = this.add.rectangle(w / 2, h * 0.3, w * 0.8, h * 0.6, 0x22294b, 0.9);
-      const bgBottom = this.add.rectangle(w / 2, h * 0.9, w * 0.8, h * 0.3, 0x181b33, 0.9);
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
 
-      bgBase.setStrokeStyle(1, 0x2c3152);
-      bgGlow.setStrokeStyle(1, 0x363d66);
-      bgBottom.setStrokeStyle(1, 0x363d66);
+  function drawBuilding(ctx, x, y, w, h, colorMain, colorAccent, label) {
+    ctx.fillStyle = colorMain;
+    roundRect(ctx, x, y, w, h, 16, true, false);
 
-      // 道路
-      const roadColor = 0x1e2238;
+    // 屋頂
+    ctx.fillStyle = "rgba(15,23,42,0.9)";
+    roundRect(ctx, x + 8, y + 6, w - 16, 18, 10, true, false);
 
-      const roadH = this.add.rectangle(w / 2, h * 0.58, w * 0.86, 52, roadColor);
-      roadH.setStrokeStyle(1, 0x3b4262);
+    // 門
+    ctx.fillStyle = colorAccent;
+    roundRect(ctx, x + w * 0.4, y + h * 0.45, w * 0.22, h * 0.4, 10, true, false);
 
-      const roadV = this.add.rectangle(w * 0.28, h * 0.5, 46, h * 0.7, roadColor);
-      roadV.setStrokeStyle(1, 0x3b4262);
+    // 小窗
+    ctx.fillStyle = "rgba(15,23,42,0.95)";
+    roundRect(ctx, x + 12, y + 32, 26, 22, 6, true, false);
+    roundRect(ctx, x + w - 38, y + 32, 26, 22, 6, true, false);
 
-      // 草地區
-      this.add.rectangle(w * 0.7, h * 0.26, w * 0.4, h * 0.3, 0x182433).setStrokeStyle(1, 0x335a7a);
-      this.add.rectangle(w * 0.7, h * 0.82, w * 0.4, h * 0.26, 0x182433).setStrokeStyle(1, 0x335a7a);
+    // 標籤文字
+    ctx.fillStyle = "#f9fafb";
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x + w / 2, y + h + 14);
+  }
 
-      // 建築
-      this._createBuilding({
-        x: w * 0.7,
-        y: h * 0.25,
-        width: w * 0.24,
-        height: h * 0.18,
-        color: 0x252842,
-        border: 0xff8fb6,
-        title: "C.H 門市",
-        subtitle: "櫃檯接待 · 諮詢",
-        icon: "🏪",
-      });
+  function step() {
+    const canvas = state.canvas;
+    const ctx = state.ctx;
+    if (!canvas || !ctx) return;
 
-      this._createBuilding({
-        x: w * 0.7,
-        y: h * 0.8,
-        width: w * 0.26,
-        height: h * 0.18,
-        color: 0x252842,
-        border: 0xffc96b,
-        title: "整理區 / 倉庫",
-        subtitle: "分類 · 包裝 · 入庫",
-        icon: "📦",
-      });
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
 
-      this._createBuilding({
-        x: w * 0.28,
-        y: h * 0.2,
-        width: w * 0.24,
-        height: h * 0.16,
-        color: 0x252842,
-        border: 0x7ad3ff,
-        title: "外送集散點",
-        subtitle: "出車 · 回件",
-        icon: "🚚",
-      });
+    // 移動玩家 toward 目標點
+    const dx = state.targetX - state.playerX;
+    const dy = state.targetY - state.playerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
 
-      this.add.text(w * 0.08, h * 0.08, "👣 點一下小鎮任一位置\n角色會走過去", {
-        fontSize: 12,
-        color: "#f4f5ff",
-        lineSpacing: 4,
-      });
+    if (dist > 1) {
+      const vx = (dx / dist) * state.speed;
+      const vy = (dy / dist) * state.speed;
+      state.playerX += vx;
+      state.playerY += vy;
 
-      // 主角
-      this.player = this.physics.add.circle(w * 0.3, h * 0.58, 15, 0xff8fb6);
-      this.player.setStrokeStyle(2, 0xffffff);
-      this.player.body.setCollideWorldBounds(true);
-
-      this.playerAura = this.add.circle(this.player.x, this.player.y, 24, 0xff8fb6, 0.2);
-
-      this.playerLabel = this.add
-        .text(this.player.x, this.player.y - 26, "你", {
-          fontSize: 12,
-          color: "#ffffff",
-        })
-        .setOrigin(0.5, 1);
-
-      this.cursors = this.input.keyboard.createCursorKeys();
-
-      this.input.on("pointerdown", (pointer) => {
-        this.moveTarget = { x: pointer.worldX, y: pointer.worldY };
-      });
+      // 簡單邊界限制
+      state.playerX = Math.min(Math.max(w * 0.08, state.playerX), w * 0.92);
+      state.playerY = Math.min(Math.max(h * 0.2, state.playerY), h * 0.88);
     }
 
-    _createBuilding(cfg) {
-      const { x, y, width, height, color, border, title, subtitle, icon } = cfg;
+    drawScene();
+    state.animationId = requestAnimationFrame(step);
+  }
 
-      const base = this.add.rectangle(x, y, width, height, color);
-      base.setStrokeStyle(2, border);
+  function handleClick(evt) {
+    const canvas = state.canvas;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = evt.clientX - rect.left;
+    const y = evt.clientY - rect.top;
+    state.targetX = x;
+    state.targetY = y;
+  }
 
-      const sign = this.add.rectangle(x, y - height * 0.33, width * 0.7, 20, border, 1);
-      sign.setStrokeStyle(1, 0xffffff);
+  function handleKeydown(evt) {
+    const key = evt.key;
+    const stepDelta = 18;
 
-      this.add
-        .text(x, y - height * 0.34, `${icon}  ${title}`, {
-          fontSize: 12,
-          color: "#111111",
-        })
-        .setOrigin(0.5, 0.5);
-
-      this.add
-        .text(x, y + height * 0.02, subtitle, {
-          fontSize: 11,
-          color: "#e4e6ff",
-        })
-        .setOrigin(0.5, 0.5);
-
-      const winW = width * 0.18;
-      const winH = height * 0.28;
-      this.add.rectangle(x - width * 0.22, y + height * 0.05, winW, winH, 0x34425f).setStrokeStyle(1, 0x6073a2);
-      this.add.rectangle(x - width * 0.05, y + height * 0.05, winW, winH, 0x34425f).setStrokeStyle(1, 0x6073a2);
-      this.add.rectangle(x + width * 0.12, y + height * 0.05, winW, winH, 0x34425f).setStrokeStyle(1, 0x6073a2);
-    }
-
-    update() {
-      if (!this.player) return;
-
-      const speed = 170;
-      const body = this.player.body;
-
-      body.setVelocity(0);
-
-      if (this.cursors.left.isDown) {
-        body.setVelocityX(-speed);
-        this.moveTarget = null;
-      } else if (this.cursors.right.isDown) {
-        body.setVelocityX(speed);
-        this.moveTarget = null;
-      }
-
-      if (this.cursors.up.isDown) {
-        body.setVelocityY(-speed);
-        this.moveTarget = null;
-      } else if (this.cursors.down.isDown) {
-        body.setVelocityY(speed);
-        this.moveTarget = null;
-      }
-
-      if (this.moveTarget) {
-        const dx = this.moveTarget.x - this.player.x;
-        const dy = this.moveTarget.y - this.player.y;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist > 4) {
-          const vx = (dx / dist) * speed;
-          const vy = (dy / dist) * speed;
-          body.setVelocity(vx, vy);
-        } else {
-          body.setVelocity(0, 0);
-          this.moveTarget = null;
-        }
-      }
-
-      const w = this.scale.width;
-      const h = this.scale.height;
-      this.player.x = Phaser.Math.Clamp(this.player.x, 24, w - 24);
-      this.player.y = Phaser.Math.Clamp(this.player.y, 24, h - 24);
-
-      if (this.playerAura) {
-        this.playerAura.x = this.player.x;
-        this.playerAura.y = this.player.y;
-      }
-      if (this.playerLabel) {
-        this.playerLabel.x = this.player.x;
-        this.playerLabel.y = this.player.y - 24;
-      }
+    switch (key) {
+      case "ArrowUp":
+      case "w":
+      case "W":
+        state.targetY = state.playerY - stepDelta;
+        break;
+      case "ArrowDown":
+      case "s":
+      case "S":
+        state.targetY = state.playerY + stepDelta;
+        break;
+      case "ArrowLeft":
+      case "a":
+      case "A":
+        state.targetX = state.playerX - stepDelta;
+        break;
+      case "ArrowRight":
+      case "d":
+      case "D":
+        state.targetX = state.playerX + stepDelta;
+        break;
+      default:
+        return;
     }
   }
 
@@ -211,22 +291,24 @@
     const root = document.getElementById(GAME_ROOT_ID);
     if (!root) return;
 
-    const rect = root.getBoundingClientRect();
-    const width = Math.max(320, rect.width || 480);
-    const height = Math.max(320, rect.height || 420);
-
-    const config = createGameConfig(width, height);
-    const game = new Phaser.Game(config);
+    state.canvas = createCanvas(root);
 
     window.addEventListener("resize", () => {
-      const r = root.getBoundingClientRect();
-      const w = Math.max(320, r.width || 480);
-      const h = Math.max(320, r.height || 420);
-      game.scale.resize(w, h);
+      if (!state.canvas) return;
+      resizeCanvas(state.canvas, root);
     });
+
+    state.canvas.addEventListener("click", handleClick);
+    window.addEventListener("keydown", handleKeydown);
+
+    if (state.animationId) cancelAnimationFrame(state.animationId);
+    step();
   }
 
-  if (document.readyState === "complete" || document.readyState === "interactive") {
+  if (
+    document.readyState === "complete" ||
+    document.readyState === "interactive"
+  ) {
     setTimeout(boot, 0);
   } else {
     window.addEventListener("DOMContentLoaded", boot);
