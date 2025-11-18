@@ -202,4 +202,10 @@
     sendMessage(userInputEl.value);
   });
 
-  //
+  // ===== 11. 初始化 =====
+  ensureConversation(currentRole);
+  updateRoleHeader(currentRole);
+  renderRoleTabs();
+  renderQuickQuestions();
+  renderConversation();
+})();
