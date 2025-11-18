@@ -1,327 +1,240 @@
-/* 全局設定 */
-*,
-*::before,
-*::after {
+/* 全局 */
+* {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang TC",
-    "Microsoft JhengHei", sans-serif;
-  background: #101014;
-  color: #f7f7fb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei",
+    system-ui, sans-serif;
+  background: #05050a;
+  color: #f5f5f5;
+  overflow: hidden;
 }
 
-/* Header */
-
-.header {
+/* ====== Layout ====== */
+.layout {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid #262637;
-  background: #15151c;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  height: 100vh;
+  width: 100vw;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
-.logo {
+/* ====== 左邊小鎮 ====== */
+.town-panel {
+  flex: 1.3;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at top, #262538 0, #0a0a12 55%, #05050a 100%);
+  border-right: 1px solid #252638;
+  padding: 14px 16px;
+}
+
+/* Logo Bar */
+.logo-bar {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 10px;
 }
 
-.logo-mark {
-  background: #ff6b81;
-  color: #fff;
+.logo-dot {
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 14px;
+  background: linear-gradient(135deg, #ff5b8a, #ff8860);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
   font-weight: 700;
+  color: #fff;
 }
 
 .logo-text {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #f5f5ff;
-}
-
-.header-right {
-  text-align: right;
-}
-
-.header-tag {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 107, 129, 0.16);
-  color: #ff9fb0;
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.header-sub {
-  font-size: 12px;
-  color: #a0a0c0;
-}
-
-/* 主內容 */
-
-.main {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 20px 16px 40px;
-}
-
-.section {
-  margin-bottom: 24px;
-  background: #15151e;
-  border-radius: 16px;
-  border: 1px solid #262637;
-  padding: 16px 18px 18px;
-}
-
-.section-title {
-  margin: 0 0 4px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #f5f5ff;
-}
-
-.section-sub {
-  margin: 0 0 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   font-size: 13px;
-  color: #a0a0c0;
+  color: #f5f5f5;
 }
 
-/* 角色區 */
-
-.role-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+/* Phaser Canvas */
+.game-root {
+  flex: 1;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid #2b2d45;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
 }
 
-.role-card {
-  background: #1b1b25;
-  border-radius: 14px;
-  border: 1px solid #2b2b3c;
-  padding: 12px 10px;
-  text-align: center;
-  cursor: pointer;
-  transition: 0.18s ease;
-  color: #f5f5ff;
+/* Hint */
+.hint-bar {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #c2c3d6;
+  opacity: 0.9;
+}
+
+/* ====== 右邊聊天區 ====== */
+.chat-panel {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  padding: 16px 20px;
+  background: #05050a;
 }
 
-.role-card:hover {
-  border-color: #ff9fb0;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+/* Role Info */
+.role-info {
+  margin-bottom: 10px;
 }
 
-.role-card.selected {
-  border-color: #ff6b81;
-  box-shadow: 0 0 0 1px rgba(255, 107, 129, 0.6);
-  background: #1f1f2b;
-}
-
-.role-card:focus {
-  outline: none;
-}
-
-.role-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 999px;
-  background: #222230;
-  object-fit: cover;
-}
-
-.role-name {
+.role-title {
   font-size: 14px;
-  font-weight: 600;
+  color: #a7a8c8;
+}
+
+#current-role-label {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 112, 160, 0.12);
+  color: #ff98c2;
+  font-size: 13px;
+  margin-left: 4px;
 }
 
 .role-desc {
-  font-size: 12px;
-  color: #a9a9c8;
-}
-
-/* 聊天區 */
-
-.chat-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.chat-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.current-role {
+  margin-top: 6px;
   font-size: 13px;
-  color: #c2c2e0;
+  color: #e0e1ff;
+  line-height: 1.5;
 }
 
-.current-role-label {
-  color: #8f8fb0;
-}
-
-#current-role-name {
-  font-weight: 600;
-  color: #ffd2da;
-}
-
+/* Chat Box */
 .chat-box {
-  height: 320px;
-  border-radius: 12px;
-  background: #101019;
-  border: 1px solid #262637;
-  padding: 12px;
-  overflow-y: auto;
-  font-size: 14px;
-}
-
-/* 訊息泡泡 */
-
-.msg-row {
+  flex: 1;
   display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at top, #171727 0, #06060c 60%);
+  border-radius: 18px;
+  border: 1px solid #2a2b3e;
+  padding: 12px;
+  min-height: 0;
+}
+
+/* Chat messages scroll */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Scrollbar */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #3a3c55;
+  border-radius: 999px;
+}
+
+/* Message bubble */
+.msg {
+  max-width: 92%;
   margin-bottom: 8px;
-}
-
-.msg-row.user {
-  justify-content: flex-end;
-}
-
-.msg-row.ai {
-  justify-content: flex-start;
-}
-
-.msg-bubble {
-  max-width: 80%;
   padding: 8px 10px;
   border-radius: 12px;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.msg-user {
+  margin-left: auto;
+  background: rgba(255, 138, 184, 0.16);
+  border: 1px solid rgba(255, 138, 184, 0.5);
+}
+
+.msg-ai {
+  margin-right: auto;
+  background: rgba(38, 41, 76, 0.85);
+  border: 1px solid rgba(102, 110, 199, 0.7);
+}
+
+/* Message header */
+.msg-header {
+  font-size: 11px;
+  margin-bottom: 3px;
+  opacity: 0.75;
+}
+
+.msg-body {
   white-space: pre-wrap;
 }
 
-.msg-bubble.user {
-  background: #3f7cff;
-  color: #fff;
-  border-bottom-right-radius: 2px;
-}
-
-.msg-bubble.ai {
-  background: #1f1f2b;
-  color: #f5f5ff;
-  border-bottom-left-radius: 2px;
-}
-
-.msg-meta {
-  font-size: 11px;
-  color: #8f8fb0;
-  margin-bottom: 2px;
-}
-
-/* 輸入區 */
-
-.input-area {
-  margin-top: 10px;
+/* Input area */
+.chat-input-area {
+  margin-top: 8px;
   display: flex;
   gap: 8px;
 }
 
-.input-area input {
+.chat-input {
   flex: 1;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid #2c2c3b;
-  background: #101019;
-  color: #f5f5ff;
-  font-size: 14px;
+  resize: none;
+  border-radius: 12px;
+  border: 1px solid #333651;
+  padding: 8px 10px;
+  background: #05050a;
+  color: #f5f5f5;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.input-area input::placeholder {
-  color: #696984;
-}
-
-.input-area input:focus {
+.chat-input:focus {
   outline: none;
-  border-color: #ff6b81;
+  border-color: #ff8fb6;
 }
 
-.input-area button {
+.chat-send-btn {
+  padding: 0 18px;
   border-radius: 999px;
   border: none;
-  padding: 0 18px;
-  font-size: 14px;
+  background: linear-gradient(135deg, #ff5b8a, #ff9260);
+  color: #fff;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  background: #ff6b81;
-  color: #fff;
-  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.input-area button:disabled {
-  opacity: 0.6;
-  cursor: default;
+.chat-send-btn:hover {
+  filter: brightness(1.05);
 }
 
-/* 提示列 */
-
-.hint-row {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #9e9ec3;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.hint-pill {
-  display: inline-block;
-  border-radius: 999px;
-  padding: 3px 8px;
-  border: 1px solid #2e2e40;
-  margin-left: 4px;
-  margin-bottom: 3px;
-}
-
-.hint-small {
+/* Example Question Chips */
+.example-line {
+  margin-top: 6px;
   font-size: 11px;
-  color: #7f7fa3;
+  color: #a9abcb;
 }
 
-/* RWD */
+.chip {
+  margin-left: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 150, 214, 0.7);
+  background: transparent;
+  color: #d4d6ff;
+  font-size: 11px;
+  cursor: pointer;
+}
 
-@media (max-width: 720px) {
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-
-  .header-right {
-    text-align: left;
-  }
-
-  .chat-box {
-    height: 260px;
-  }
+.chip:hover {
+  background: rgba(148, 150, 214, 0.18);
 }
