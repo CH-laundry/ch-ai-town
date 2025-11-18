@@ -4,14 +4,16 @@
     <meta charset="UTF-8" />
     <title>C.H AI TOWN</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <link rel="stylesheet" href="/style.css" />
 
-    <!-- ① 先載入 Phaser，引擎不再缺失 -->
+    <!-- 🚀 必須加這行：Phaser 遊戲引擎 -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
   </head>
+
   <body>
     <div class="page">
-      <!-- 頂部列 -->
+      <!-- Top Bar -->
       <header class="topbar">
         <div class="brand">
           <div class="brand-logo">C.H</div>
@@ -23,16 +25,24 @@
       </header>
 
       <main class="layout">
-        <!-- 左：2D 小鎮（這裡改成 game-root，給 Phaser 掛載） -->
+        <!-- ====================== -->
+        <!-- 左側：小鎮遊戲區 -->
+        <!-- ====================== -->
         <section class="town-panel">
+          <!-- 🚀 game.js 在找的掛載點：id="game-root" -->
           <div id="game-root" class="game-root"></div>
+
           <div class="town-hint">
-            💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
+            💡 操作提示：鍵盤方向鍵可以移動主角；
+            手機點擊小鎮任一位置，圓形角色會走過去。
           </div>
         </section>
 
-        <!-- 右：AI 對話區 -->
+        <!-- ====================== -->
+        <!-- 右側：AI 對話區 -->
+        <!-- ====================== -->
         <section class="chat-panel">
+          <!-- 標頭：角色顯示 -->
           <div class="role-header">
             <div class="role-info">
               <div class="role-label">當前角色</div>
@@ -43,10 +53,10 @@
             </div>
           </div>
 
-          <!-- 角色 tabs -->
+          <!-- 角色 tabs（由 app.js 動態生成） -->
           <div class="role-tabs" id="role-tabs"></div>
 
-          <!-- 對話框 -->
+          <!-- 聊天內容 -->
           <div class="chat-box" id="chat-box"></div>
 
           <!-- 範例問題 -->
@@ -57,7 +67,7 @@
             <input
               id="user-input"
               type="text"
-              placeholder="輸入想問這個角色的問題，例如：這個油漬有機會洗乾淨嗎？"
+              placeholder="輸入問題，例如：皮衣的油漬可以洗掉嗎？"
               autocomplete="off"
             />
             <button type="submit">送出</button>
@@ -66,10 +76,10 @@
       </main>
     </div>
 
-    <!-- ② app.js：處理右邊所有角色對話與 roleId（這個檔你已經是新版了） -->
+    <!-- 🚀 app.js 控制右側角色聊天 -->
     <script src="/app.js"></script>
 
-    <!-- ③ game.js：啟動小鎮遊戲，現在會找到 id="game-root" -->
+    <!-- 🚀 game.js 啟動左側小鎮遊戲 -->
     <script src="/game.js"></script>
   </body>
 </html>
