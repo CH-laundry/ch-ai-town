@@ -1,5 +1,5 @@
 // public/game.js
-// C.H AI Town 小鎮：大地圖 + 點建築切換角色
+// C.H AI Town V2.0+V2.1：2D 圖片建築 + NPC 巡邏系統
 
 (function () {
   const ROOT_ID = "game-root";
@@ -16,8 +16,9 @@
       parent: ROOT_ID,
       width,
       height,
-      backgroundColor: "#0b1020",
+      backgroundColor: "#1a1d2e", //稍微改深一點，讓 2D 圖比較跳
       scene: {
+        preload,
         create,
         update,
       },
@@ -25,191 +26,131 @@
 
     const game = new Phaser.Game(config);
 
+    // === 1. 載入素材 (Preload) ===
+    function preload() {
+      const scene = this;
+      
+      // 設定讀取路徑
+      scene.load.setPath('/images/');
+
+      // 載入建築物 (請確保你有這些圖片，否則會顯示綠色缺圖方塊)
+      scene.load.image('buildingStore', 'building-store.png');     // C.H 門市
+      scene.load.image('buildingIroning', 'building-ironing.png'); // 整燙中心
+      scene.load.image('buildingDelivery', 'building-delivery.png'); // 收送倉庫
+
+      // 載入 NPC
+      scene.load.image('npcCs', 'npc-cs.png');           // 客服
+      scene.load.image('npcIroning', 'npc-ironing.png'); // 師傅
+      scene.load.image('npcDelivery', 'npc-delivery.png'); // 外送員
+    }
+
     function create() {
       const scene = this;
       const w = scene.scale.width;
       const h = scene.scale.height;
       const centerX = w / 2;
-      const centerY = h / 2;
 
-      // 背景區塊
-      const bg = scene.add
-        .rectangle(centerX, centerY, w * 0.96, h * 0.96, 0x151933)
-        .setStrokeStyle(2, 0x343b5d);
-      bg.setOrigin(0.5, 0.5);
+      // --- 地圖背景 ---
+      // 地板
+      scene.add.rectangle(centerX, h/2, w, h, 0x2b3045).setDepth(0);
+      
+      // 馬路 (簡單畫，未來可用圖片取代)
+      const roadColor = 0x1e2130;
+      scene.add.rectangle(centerX, h/2, w * 0.12, h, roadColor).setDepth(1); // 垂直路
+      scene.add.rectangle(centerX, h * 0.45, w, w * 0.12, roadColor).setDepth(1); // 水平路
 
-      // 馬路 – 垂直
-      const roadWidth = w * 0.08;
-      scene.add
-        .rectangle(centerX, centerY, roadWidth, h * 0.8, 0x22263d)
-        .setStrokeStyle(1, 0x3a415d);
+      // --- 工廠函式：建立 2D 建築 ---
+      function createImageBuilding(key, x, y, scale, roleId) {
+        const b = scene.add.image(x, y, key);
+        b.setDepth(10); // 確保在馬路上面
+        
+        // 自動縮放：依照畫面寬度調整 (讓房子大約佔畫面的 1/4 寬)
+        const targetWidth = w * 0.28;
+        const scaleFactor = targetWidth / b.width; 
+        b.setScale(scaleFactor * scale); // 乘上額外參數微調
 
-      // 馬路 – 水平（上方）
-      scene.add
-        .rectangle(centerX, h * 0.42, w * 0.8, roadWidth * 0.72, 0x22263d)
-        .setStrokeStyle(1, 0x3a415d);
+        b.setInteractive({ useHandCursor: true });
 
-      // 虛線
-      const dashCount = 7;
-      const dashLen = (w * 0.8) / (dashCount * 2);
-      for (let i = 0; i < dashCount; i++) {
-        const x = centerX - (w * 0.8) / 2 + dashLen / 2 + i * dashLen * 2;
-        scene.add.rectangle(x, h * 0.42, dashLen, 3, 0x4a536f);
+        // 點擊效果
+        b.on('pointerdown', () => {
+          // 縮放動畫
+          scene.tweens.add({
+            targets: b,
+            scaleX: b.scaleX * 0.95,
+            scaleY: b.scaleY * 0.95,
+            yoyo: true,
+            duration: 100
+          });
+          // 切換角色
+          if (window.chTownSwitchRoleFromMap) {
+            window.chTownSwitchRoleFromMap(roleId);
+          }
+        });
+        
+        return b; // 回傳物件以便後續取得位置
       }
 
-      // === 建築工廠函式 ===
-      function createBuilding(opts) {
-        const { x, y, color, title, subtitle, onClick } = opts;
-        const width = w * 0.22;
-        const height = h * 0.18;
+      // --- 建立三棟房子 ---
+      // 1. 門市 (左上)
+      const store = createImageBuilding('buildingStore', centerX - w * 0.25, h * 0.25, 1.0, 'chCustomerService');
+      
+      // 2. 整燙 (右上)
+      const ironing = createImageBuilding('buildingIroning', centerX + w * 0.25, h * 0.25, 1.0, 'ironingMaster');
 
-        const container = scene.add.container(x, y);
+      // 3. 倉庫 (左下)
+      const delivery = createImageBuilding('buildingDelivery', centerX - w * 0.25, h * 0.7, 1.1, 'deliveryStaff');
 
-        const base = scene.add
-          .rectangle(0, 0, width, height, color)
-          .setOrigin(0.5, 0.5)
-          .setStrokeStyle(3, 0x192034);
-        base.setRadius?.(14);
 
-        const roof = scene.add
-          .rectangle(0, -height * 0.38, width * 0.9, height * 0.25, 0x111324)
-          .setOrigin(0.5, 0.5);
+      // --- 工廠函式：建立 NPC (會走路) ---
+      function createNPC(key, x, y) {
+        const npc = scene.add.image(x, y, key);
+        npc.setDepth(15); // 在房子前面
+        
+        // 大小調整 (約 50px 寬)
+        const targetSize = 50;
+        npc.setScale(targetSize / npc.width);
 
-        const door = scene.add.rectangle(
-          0,
-          height * 0.05,
-          width * 0.16,
-          height * 0.3,
-          0x111324
-        );
-        const winLeft = scene.add.rectangle(
-          -width * 0.22,
-          -height * 0.05,
-          width * 0.16,
-          height * 0.2,
-          0x111324
-        );
-        const winRight = scene.add.rectangle(
-          width * 0.22,
-          -height * 0.05,
-          width * 0.16,
-          height * 0.2,
-          0x111324
-        );
-
-        const titleText = scene.add
-          .text(0, -height * 0.45, title, {
-            fontSize: 14,
-            color: "#fdf2ff",
-            fontStyle: "700",
-          })
-          .setOrigin(0.5, 0.5);
-
-        const subtitleText = scene.add
-          .text(0, height * 0.42, subtitle, {
-            fontSize: 11,
-            color: "#cfd4ff",
-          })
-          .setOrigin(0.5, 0.5);
-
-        container.add([
-          base,
-          roof,
-          door,
-          winLeft,
-          winRight,
-          titleText,
-          subtitleText,
-        ]);
-
-        // 點擊範圍
-        const hit = scene.add
-          .rectangle(0, 0, width * 1.05, height * 1.1, 0xffffff, 0)
-          .setOrigin(0.5, 0.5)
-          .setInteractive({ useHandCursor: true });
-
-        hit.on("pointerdown", () => {
-          if (typeof onClick === "function") onClick();
-          // 小小的閃動效果
-          scene.tweens.add({
-            targets: container,
-            scaleX: 1.03,
-            scaleY: 1.03,
-            yoyo: true,
-            duration: 120,
-            ease: "Quad.easeInOut",
-          });
+        // 走路動畫 (左右來回)
+        scene.tweens.add({
+          targets: npc,
+          x: x + 30, // 往右走 30px
+          duration: 2000 + Math.random() * 1000, // 隨機時間比較自然
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+          delay: Math.random() * 1000 // 隨機延遲起步
         });
 
-        container.add(hit);
-        return container;
+        // 簡單的呼吸效果 (看起來像活的)
+        scene.tweens.add({
+          targets: npc,
+          scaleY: npc.scaleY * 0.95,
+          yoyo: true,
+          repeat: -1,
+          duration: 500
+        });
       }
 
-      // === 建築：對應角色 ===
-      createBuilding({
-        x: centerX - w * 0.22,
-        y: h * 0.24,
-        color: 0xff6b81,
-        title: "C.H 門市",
-        subtitle: "接待 · 一般諮詢",
-        onClick: () => {
-          if (window.chTownSwitchRoleFromMap) {
-            window.chTownSwitchRoleFromMap("chCustomerService");
-          }
-        },
-      });
+      // --- 放置 NPC (放在建築物門口附近) ---
+      // 雖然 store.x 是中心點，我們往下加一點 y 讓它站在門口
+      createNPC('npcCs', store.x, store.y + h * 0.12); 
+      createNPC('npcIroning', ironing.x, ironing.y + h * 0.12);
+      createNPC('npcDelivery', delivery.x + 20, delivery.y + h * 0.12); // 外送員稍微偏一點
 
-      createBuilding({
-        x: centerX + w * 0.22,
-        y: h * 0.24,
-        color: 0x4f7dff,
-        title: "整燙 / 整理",
-        subtitle: "西裝 · 禮服整燙",
-        onClick: () => {
-          if (window.chTownSwitchRoleFromMap) {
-            window.chTownSwitchRoleFromMap("ironingMaster");
-          }
-        },
-      });
 
-      createBuilding({
-        x: centerX - w * 0.22,
-        y: h * 0.7,
-        color: 0x32c872,
-        title: "收送倉庫",
-        subtitle: "外送 · 收送調度",
-        onClick: () => {
-          if (window.chTownSwitchRoleFromMap) {
-            window.chTownSwitchRoleFromMap("deliveryStaff");
-          }
-        },
-      });
-
-      // === 主角圓點 ===
-      const startX = centerX;
-      const startY = h * 0.55;
-
-      const outer = scene.add.circle(startX, startY, 11, 0xff86a0);
-      const inner = scene.add.circle(startX, startY, 5, 0xffffff);
-      const playerGroup = scene.add.container(0, 0, [outer, inner]);
-      playerGroup.x = startX;
-      playerGroup.y = startY;
-
-      scene.player = playerGroup;
+      // --- 主角 (玩家) ---
+      const player = scene.add.circle(centerX, h * 0.55, 10, 0xff6b81).setDepth(20);
+      scene.player = player;
       scene.playerTarget = null;
 
-      // 點擊地圖：走到該位置
+      // 點擊移動邏輯
       scene.input.on("pointerdown", (pointer) => {
-        const localY = Phaser.Math.Clamp(pointer.y, h * 0.16, h * 0.82);
-        const localX = Phaser.Math.Clamp(
-          pointer.x,
-          centerX - w * 0.38,
-          centerX + w * 0.38
-        );
-        scene.playerTarget = { x: localX, y: localY };
+        // 忽略點擊到房子時的觸發 (讓房子自己處理點擊)
+        if (pointer.y < h * 0.1) return; 
+
+        scene.playerTarget = { x: pointer.x, y: pointer.y };
       });
 
-      // 鍵盤方向鍵
       scene.cursors = scene.input.keyboard.createCursorKeys();
     }
 
@@ -218,8 +159,7 @@
       const player = scene.player;
       if (!player) return;
 
-      const speed = 0.22 * delta; // 每 frame 位移
-
+      const speed = 0.25 * delta;
       let vx = 0;
       let vy = 0;
 
@@ -236,7 +176,7 @@
         const dx = scene.playerTarget.x - player.x;
         const dy = scene.playerTarget.y - player.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 2) {
+        if (dist < 4) {
           scene.playerTarget = null;
         } else {
           player.x += (dx / dist) * speed;
@@ -244,20 +184,15 @@
         }
       }
     }
-
-    // 視窗 resize：讓 canvas 跟著 panel 大小走
+    
+    // RWD
     window.addEventListener("resize", () => {
       const r = root.getBoundingClientRect();
-      const w2 = Math.max(320, r.width || width);
-      const h2 = Math.max(320, r.height || height);
-      game.scale.resize(w2, h2);
+      game.scale.resize(r.width, r.height);
     });
   }
 
-  if (
-    document.readyState === "complete" ||
-    document.readyState === "interactive"
-  ) {
+  if (document.readyState === "complete" || document.readyState === "interactive") {
     setTimeout(boot, 0);
   } else {
     window.addEventListener("DOMContentLoaded", boot);
