@@ -1,13 +1,16 @@
-// 🔥 不管誰先 require，我自己先載入 .env
-require("dotenv").config();
+// 🔥 強制載入 dotenv（在 Node v24 裡要放在第一行、不能被包在 function 或 module.exports 裡）
+require("dotenv").config({ path: require("path").resolve(__dirname, "../.env") });
 
 const OpenAI = require("openai");
 
-// 如果 .env 還是沒有金鑰 → 給清楚的 warning 並中止 new OpenAI()
+// ⭐ 這裡直接印出 process.env.OPENAI_API_KEY 的前 5 碼
+// ⭐ 用來驗證「到底 dotenv 有沒有被讀取」
+// ⭐ 本機測試用，線上 Railway 不會出現問題
+console.log("[DEBUG] Loaded OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.slice(0, 5) + "..." : "EMPTY");
+
 if (!process.env.OPENAI_API_KEY) {
-  console.warn("[ERROR] OPENAI_API_KEY not found in .env or environment.");
-  console.warn("[ERROR] Please add OPENAI_API_KEY to your .env file.");
-  // 避免 Node 直接 crash，回傳一個 mock client，而不是 throw error
+  console.warn("[ERROR] OPENAI_API_KEY is missing. Using local mock client instead.");
+
   module.exports = {
     chat: {
       completions: {
@@ -16,7 +19,7 @@ if (!process.env.OPENAI_API_KEY) {
             {
               message: {
                 content:
-                  "(本機模式) 因為沒有 OPENAI_API_KEY，所以使用 mock 回覆。",
+                  "(本機測試模式) 因為缺少 OPENAI_API_KEY，使用 mock AI 回覆。",
               },
             },
           ],
@@ -24,10 +27,9 @@ if (!process.env.OPENAI_API_KEY) {
       },
     },
   };
-  return; // ⚠️ 一定要 return 避免執行 new OpenAI()
+  return;
 }
 
-// 有金鑰 → 用真的 OpenAI client
 module.exports = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
