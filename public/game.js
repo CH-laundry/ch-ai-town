@@ -1,5 +1,5 @@
 // public/game.js
-// C.H AI Town 小鎮：2D 房子圖片 + NPC 互動
+// C.H AI Town 小鎮：2D 房子圖片 + NPC 互動 + 建築高亮
 
 (function () {
   const ROOT_ID = "game-root";
@@ -76,9 +76,12 @@
       scene.add.rectangle(x, h * 0.42, dashLen, 3, 0x4a536f);
     }
 
+    // 建築 map，用來做「誰是目前角色」
+    const buildingByRole = {};
+
     // ===== 建築工廠：使用圖片當房子 =====
     function createBuilding(opts) {
-      const { x, y, key, title, subtitle, onClick } = opts;
+      const { x, y, key, title, subtitle, roleId, onClick } = opts;
       const container = scene.add.container(x, y);
 
       const house = scene.add.image(0, 0, key);
@@ -124,6 +127,11 @@
       });
 
       container.add(hit);
+
+      if (roleId) {
+        buildingByRole[roleId] = { container, house, titleText };
+      }
+
       return { container, displayHeight };
     }
 
@@ -134,6 +142,7 @@
       key: "building-store",
       title: "C.H 門市",
       subtitle: "接待 · 一般諮詢",
+      roleId: "chCustomerService",
       onClick: () => {
         if (window.chTownSwitchRoleFromMap) {
           window.chTownSwitchRoleFromMap("chCustomerService");
@@ -147,6 +156,7 @@
       key: "building-ironing",
       title: "整燙 / 整理",
       subtitle: "西裝 · 禮服整燙",
+      roleId: "ironingMaster",
       onClick: () => {
         if (window.chTownSwitchRoleFromMap) {
           window.chTownSwitchRoleFromMap("ironingMaster");
@@ -160,12 +170,41 @@
       key: "building-delivery",
       title: "收送倉庫",
       subtitle: "外送 · 調度",
+      roleId: "deliveryStaff",
       onClick: () => {
         if (window.chTownSwitchRoleFromMap) {
           window.chTownSwitchRoleFromMap("deliveryStaff");
         }
       },
     });
+
+    // ===== 建築高亮：目前角色 =====
+    function setActiveRoleOnMap(roleId) {
+      Object.entries(buildingByRole).forEach(([key, info]) => {
+        const { container, house, titleText } = info;
+        if (!container || !house || !titleText) return;
+
+        if (key === roleId) {
+          container.setScale(1.05);
+          container.alpha = 1;
+          house.clearTint();
+          titleText.setColor("#ffe08a");
+        } else {
+          container.setScale(1.0);
+          container.alpha = 0.9;
+          house.setTint(0xb0b5c8);
+          titleText.setColor("#fdf2ff");
+        }
+      });
+    }
+
+    // 初始預設為 C.H 客服
+    setActiveRoleOnMap("chCustomerService");
+
+    // ⭐ 給 app.js 用：通知目前角色是誰
+    window.chTownMapSetActiveRole = function (roleId) {
+      setActiveRoleOnMap(roleId);
+    };
 
     // ===== 主角粉紅圓點（保留舊操作） =====
     const startX = centerX;
@@ -213,6 +252,9 @@
           "您好～我是 C.H 客服，有任何洗衣、洗鞋、洗包的問題都可以直接問我喔！"
         );
       }
+      if (window.chTownFillUserInput) {
+        window.chTownFillUserInput("這個污漬大概能處理到什麼程度？");
+      }
     });
 
     scene.tweens.add({
@@ -240,8 +282,11 @@
       if (window.chTownNpcSay) {
         window.chTownNpcSay(
           "ironingMaster",
-          "這邊是整燙 / 整理中心，想了解西裝、禮服、襯衫怎麼整理，可以直接問我。"
+          "這裡是整燙 / 整理中心，想了解西裝、禮服、襯衫怎麼整理，可以直接問我。"
         );
+      }
+      if (window.chTownFillUserInput) {
+        window.chTownFillUserInput("西裝整燙大概要多久、會不會傷布料？");
       }
     });
 
@@ -272,6 +317,9 @@
           "deliveryStaff",
           "我是收送外送員～想問板橋、中和、永和收送時間或改約，都可以丟給我。"
         );
+      }
+      if (window.chTownFillUserInput) {
+        window.chTownFillUserInput("今天晚上還來得及收件送洗嗎？");
       }
     });
 
