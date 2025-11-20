@@ -1,5 +1,5 @@
 // public/game.js
-// C.H AI Town V2.0+V2.1：2D 圖片建築 + NPC 巡邏系統
+// C.H AI Town 小鎮：使用 2D 房子圖片 + NPC
 
 (function () {
   const ROOT_ID = "game-root";
@@ -16,7 +16,7 @@
       parent: ROOT_ID,
       width,
       height,
-      backgroundColor: "#1a1d2e", //稍微改深一點，讓 2D 圖比較跳
+      backgroundColor: "#0b1020",
       scene: {
         preload,
         create,
@@ -26,22 +26,17 @@
 
     const game = new Phaser.Game(config);
 
-    // === 1. 載入素材 (Preload) ===
+    // === 載入圖片資源 ===
     function preload() {
-      const scene = this;
-      
-      // 設定讀取路徑
-      scene.load.setPath('/images/');
+      // 房子圖片
+      this.load.image("building-store", "/images/building-store.png");
+      this.load.image("building-ironing", "/images/building-ironing.png");
+      this.load.image("building-delivery", "/images/building-delivery.png");
 
-      // 載入建築物 (請確保你有這些圖片，否則會顯示綠色缺圖方塊)
-      scene.load.image('buildingStore', 'building-store.png');     // C.H 門市
-      scene.load.image('buildingIroning', 'building-ironing.png'); // 整燙中心
-      scene.load.image('buildingDelivery', 'building-delivery.png'); // 收送倉庫
-
-      // 載入 NPC
-      scene.load.image('npcCs', 'npc-cs.png');           // 客服
-      scene.load.image('npcIroning', 'npc-ironing.png'); // 師傅
-      scene.load.image('npcDelivery', 'npc-delivery.png'); // 外送員
+      // NPC 圖片
+      this.load.image("npc-cs", "/images/npc-cs.png");
+      this.load.image("npc-ironing", "/images/npc-ironing.png");
+      this.load.image("npc-delivery", "/images/npc-delivery.png");
     }
 
     function create() {
@@ -49,109 +44,214 @@
       const w = scene.scale.width;
       const h = scene.scale.height;
       const centerX = w / 2;
+      const centerY = h / 2;
 
-      // --- 地圖背景 ---
-      // 地板
-      scene.add.rectangle(centerX, h/2, w, h, 0x2b3045).setDepth(0);
-      
-      // 馬路 (簡單畫，未來可用圖片取代)
-      const roadColor = 0x1e2130;
-      scene.add.rectangle(centerX, h/2, w * 0.12, h, roadColor).setDepth(1); // 垂直路
-      scene.add.rectangle(centerX, h * 0.45, w, w * 0.12, roadColor).setDepth(1); // 水平路
+      // ===== 背景大框 =====
+      const bg = scene.add
+        .rectangle(centerX, centerY, w * 0.96, h * 0.96, 0x151933)
+        .setStrokeStyle(2, 0x343b5d);
+      bg.setOrigin(0.5, 0.5);
 
-      // --- 工廠函式：建立 2D 建築 ---
-      function createImageBuilding(key, x, y, scale, roleId) {
-        const b = scene.add.image(x, y, key);
-        b.setDepth(10); // 確保在馬路上面
-        
-        // 自動縮放：依照畫面寬度調整 (讓房子大約佔畫面的 1/4 寬)
-        const targetWidth = w * 0.28;
-        const scaleFactor = targetWidth / b.width; 
-        b.setScale(scaleFactor * scale); // 乘上額外參數微調
+      // ===== 馬路：垂直 =====
+      const roadWidth = w * 0.08;
+      scene.add
+        .rectangle(centerX, centerY, roadWidth, h * 0.8, 0x22263d)
+        .setStrokeStyle(1, 0x3a415d);
 
-        b.setInteractive({ useHandCursor: true });
+      // ===== 馬路：水平（上方）=====
+      scene.add
+        .rectangle(centerX, h * 0.42, w * 0.8, roadWidth * 0.72, 0x22263d)
+        .setStrokeStyle(1, 0x3a415d);
 
-        // 點擊效果
-        b.on('pointerdown', () => {
-          // 縮放動畫
+      // 虛線
+      const dashCount = 7;
+      const dashLen = (w * 0.8) / (dashCount * 2);
+      for (let i = 0; i < dashCount; i++) {
+        const x = centerX - (w * 0.8) / 2 + dashLen / 2 + i * dashLen * 2;
+        scene.add.rectangle(x, h * 0.42, dashLen, 3, 0x4a536f);
+      }
+
+      // === 建築工廠：使用圖片當房子 ===
+      function createBuilding(opts) {
+        const { x, y, key, title, subtitle, onClick } = opts;
+        const container = scene.add.container(x, y);
+
+        // 房子圖片
+        const house = scene.add.image(0, 0, key);
+
+        // 依畫面寬度自動縮放
+        const targetWidth = w * 0.23;
+        const scale = targetWidth / house.width;
+        house.setScale(scale);
+
+        const displayWidth = house.width * scale;
+        const displayHeight = house.height * scale;
+
+        // 標題
+        const titleText = scene.add
+          .text(0, -displayHeight * 0.6, title, {
+            fontSize: 16,
+            color: "#fdf2ff",
+            fontStyle: "700",
+          })
+          .setOrigin(0.5, 0.5);
+
+        // 副標
+        const subtitleText = scene.add
+          .text(0, displayHeight * 0.55, subtitle, {
+            fontSize: 12,
+            color: "#cfd4ff",
+          })
+          .setOrigin(0.5, 0.5);
+
+        container.add([house, titleText, subtitleText]);
+
+        // 可點擊區域
+        const hit = scene.add
+          .rectangle(0, 0, displayWidth * 1.05, displayHeight * 1.1, 0xffffff, 0)
+          .setOrigin(0.5, 0.5)
+          .setInteractive({ useHandCursor: true });
+
+        hit.on("pointerdown", () => {
+          if (typeof onClick === "function") onClick();
+
+          // 小小放大回彈效果
           scene.tweens.add({
-            targets: b,
-            scaleX: b.scaleX * 0.95,
-            scaleY: b.scaleY * 0.95,
+            targets: container,
+            scaleX: container.scaleX * 1.04,
+            scaleY: container.scaleY * 1.04,
             yoyo: true,
-            duration: 100
+            duration: 130,
+            ease: "Quad.easeInOut",
           });
-          // 切換角色
+        });
+
+        container.add(hit);
+        return { container, displayHeight };
+      }
+
+      // ===== 三棟房子：對應角色 =====
+
+      // C.H 門市
+      const store = createBuilding({
+        x: centerX - w * 0.22,
+        y: h * 0.24,
+        key: "building-store",
+        title: "C.H 門市",
+        subtitle: "接待 · 一般諮詢",
+        onClick: () => {
           if (window.chTownSwitchRoleFromMap) {
-            window.chTownSwitchRoleFromMap(roleId);
+            window.chTownSwitchRoleFromMap("chCustomerService");
           }
-        });
-        
-        return b; // 回傳物件以便後續取得位置
-      }
-
-      // --- 建立三棟房子 ---
-      // 1. 門市 (左上)
-      const store = createImageBuilding('buildingStore', centerX - w * 0.25, h * 0.25, 1.0, 'chCustomerService');
-      
-      // 2. 整燙 (右上)
-      const ironing = createImageBuilding('buildingIroning', centerX + w * 0.25, h * 0.25, 1.0, 'ironingMaster');
-
-      // 3. 倉庫 (左下)
-      const delivery = createImageBuilding('buildingDelivery', centerX - w * 0.25, h * 0.7, 1.1, 'deliveryStaff');
-
-
-      // --- 工廠函式：建立 NPC (會走路) ---
-      function createNPC(key, x, y) {
-        const npc = scene.add.image(x, y, key);
-        npc.setDepth(15); // 在房子前面
-        
-        // 大小調整 (約 50px 寬)
-        const targetSize = 50;
-        npc.setScale(targetSize / npc.width);
-
-        // 走路動畫 (左右來回)
-        scene.tweens.add({
-          targets: npc,
-          x: x + 30, // 往右走 30px
-          duration: 2000 + Math.random() * 1000, // 隨機時間比較自然
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-          delay: Math.random() * 1000 // 隨機延遲起步
-        });
-
-        // 簡單的呼吸效果 (看起來像活的)
-        scene.tweens.add({
-          targets: npc,
-          scaleY: npc.scaleY * 0.95,
-          yoyo: true,
-          repeat: -1,
-          duration: 500
-        });
-      }
-
-      // --- 放置 NPC (放在建築物門口附近) ---
-      // 雖然 store.x 是中心點，我們往下加一點 y 讓它站在門口
-      createNPC('npcCs', store.x, store.y + h * 0.12); 
-      createNPC('npcIroning', ironing.x, ironing.y + h * 0.12);
-      createNPC('npcDelivery', delivery.x + 20, delivery.y + h * 0.12); // 外送員稍微偏一點
-
-
-      // --- 主角 (玩家) ---
-      const player = scene.add.circle(centerX, h * 0.55, 10, 0xff6b81).setDepth(20);
-      scene.player = player;
-      scene.playerTarget = null;
-
-      // 點擊移動邏輯
-      scene.input.on("pointerdown", (pointer) => {
-        // 忽略點擊到房子時的觸發 (讓房子自己處理點擊)
-        if (pointer.y < h * 0.1) return; 
-
-        scene.playerTarget = { x: pointer.x, y: pointer.y };
+        },
       });
 
+      // 整燙 / 整理中心
+      const ironing = createBuilding({
+        x: centerX + w * 0.22,
+        y: h * 0.24,
+        key: "building-ironing",
+        title: "整燙 / 整理",
+        subtitle: "西裝 · 禮服整燙",
+        onClick: () => {
+          if (window.chTownSwitchRoleFromMap) {
+            window.chTownSwitchRoleFromMap("ironingMaster");
+          }
+        },
+      });
+
+      // 收送倉庫
+      const delivery = createBuilding({
+        x: centerX - w * 0.22,
+        y: h * 0.7,
+        key: "building-delivery",
+        title: "收送倉庫",
+        subtitle: "外送 · 收送調度",
+        onClick: () => {
+          if (window.chTownSwitchRoleFromMap) {
+            window.chTownSwitchRoleFromMap("deliveryStaff");
+          }
+        },
+      });
+
+      // ===== 主角粉紅圓點（保留舊操作） =====
+      const startX = centerX;
+      const startY = h * 0.55;
+
+      const outer = scene.add.circle(startX, startY, 11, 0xff86a0);
+      const inner = scene.add.circle(startX, startY, 5, 0xffffff);
+      const playerGroup = scene.add.container(0, 0, [outer, inner]);
+      playerGroup.x = startX;
+      playerGroup.y = startY;
+
+      scene.player = playerGroup;
+      scene.playerTarget = null;
+
+      // 點地圖：主角走到指定位置
+      scene.input.on("pointerdown", (pointer) => {
+        const localY = Phaser.Math.Clamp(pointer.y, h * 0.16, h * 0.82);
+        const localX = Phaser.Math.Clamp(
+          pointer.x,
+          centerX - w * 0.38,
+          centerX + w * 0.38
+        );
+        scene.playerTarget = { x: localX, y: localY };
+      });
+
+      // 鍵盤方向鍵
       scene.cursors = scene.input.keyboard.createCursorKeys();
+
+      // ===== NPC：門市客服（站在門市上方輕微晃動）=====
+      const npcCs = scene.add.image(
+        store.container.x,
+        store.container.y - store.displayHeight * 0.9,
+        "npc-cs"
+      );
+      const npcCsScale = (w * 0.07) / npcCs.width;
+      npcCs.setScale(npcCsScale);
+      scene.tweens.add({
+        targets: npcCs,
+        y: npcCs.y - 8,
+        duration: 1500,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      // ===== NPC：整燙師傅（站在整燙中心前面）=====
+      const npcIron = scene.add.image(
+        ironing.container.x + w * 0.08,
+        ironing.container.y + ironing.displayHeight * 0.2,
+        "npc-ironing"
+      );
+      const npcIronScale = (w * 0.07) / npcIron.width;
+      npcIron.setScale(npcIronScale);
+      scene.tweens.add({
+        targets: npcIron,
+        x: npcIron.x + 10,
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      // ===== NPC：外送員（在馬路右側左右來回走）=====
+      const npcDelivery = scene.add.image(
+        centerX + w * 0.32,
+        h * 0.58,
+        "npc-delivery"
+      );
+      const npcDelScale = (w * 0.09) / npcDelivery.width;
+      npcDelivery.setScale(npcDelScale);
+
+      scene.tweens.add({
+        targets: npcDelivery,
+        x: centerX + w * 0.05,
+        duration: 3200,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
     }
 
     function update(time, delta) {
@@ -159,7 +259,8 @@
       const player = scene.player;
       if (!player) return;
 
-      const speed = 0.25 * delta;
+      const speed = 0.22 * delta; // 每 frame 位移
+
       let vx = 0;
       let vy = 0;
 
@@ -176,7 +277,7 @@
         const dx = scene.playerTarget.x - player.x;
         const dy = scene.playerTarget.y - player.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 4) {
+        if (dist < 2) {
           scene.playerTarget = null;
         } else {
           player.x += (dx / dist) * speed;
@@ -184,15 +285,20 @@
         }
       }
     }
-    
-    // RWD
+
+    // 視窗 resize：讓 canvas 跟著 panel 大小走
     window.addEventListener("resize", () => {
       const r = root.getBoundingClientRect();
-      game.scale.resize(r.width, r.height);
+      const w2 = Math.max(320, r.width || width);
+      const h2 = Math.max(320, r.height || height);
+      game.scale.resize(w2, h2);
     });
   }
 
-  if (document.readyState === "complete" || document.readyState === "interactive") {
+  if (
+    document.readyState === "complete" ||
+    document.readyState === "interactive"
+  ) {
     setTimeout(boot, 0);
   } else {
     window.addEventListener("DOMContentLoaded", boot);
