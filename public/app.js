@@ -1,5 +1,5 @@
 // public/app.js
-// 左邊大地圖、右邊對話，角色頭像 + tabs 切換
+// 左邊大地圖、右邊對話，角色頭像 + tabs 切換 + NPC 互動
 
 (function () {
   // ===== 1. 角色設定（id 要對應後端 roleMap） =====
@@ -27,12 +27,12 @@
     {
       id: "cleanerMaster",
       name: "清潔師傅",
-      icon: "🧼",
+      icon: "🧴",
       avatar: "/images/role-cleaner.png",
-      badge: "判斷材質 · 污漬風險說明",
+      badge: "分析材質 · 污漬風險與能否清潔",
       samples: [
-        "這件大衣標籤寫 X，這種材質會縮水嗎？",
-        "包包發霉有機會處理嗎？",
+        "這件白襯衫黃漬能處理到什麼程度？",
+        "麂皮鞋子發霉還能救嗎？",
       ],
     },
     {
@@ -40,8 +40,8 @@
       name: "熨燙師傅",
       icon: "🧺",
       avatar: "/images/role-ironing.png",
-      badge: "熨燙方式 · 整燙注意事項",
-      samples: ["西裝燙線可以救回來嗎？", "婚紗有小皺褶可以處理嗎？"],
+      badge: "熨燙細節 · 版型與變形風險",
+      samples: ["西裝可以整燙到很挺但不傷布料嗎？"],
     },
     {
       id: "deliveryStaff",
@@ -84,15 +84,17 @@
     }
   }
 
-  // ===== 4. 更新角色標頭 =====
+  // ===== 4. 更新右側標頭 =====
   function updateRoleHeader(role) {
-    currentRoleNameEl.textContent = role.name;
-    roleBadgeEl.textContent = role.badge;
-    roleAvatarImgEl.src = role.avatar;
-    roleAvatarImgEl.alt = role.name;
+    if (currentRoleNameEl) currentRoleNameEl.textContent = role.name;
+    if (roleBadgeEl) roleBadgeEl.textContent = role.badge;
+    if (roleAvatarImgEl && role.avatar) {
+      roleAvatarImgEl.src = role.avatar;
+      roleAvatarImgEl.alt = role.name + "頭像";
+    }
   }
 
-  // ===== 5. 重新渲染 tabs =====
+  // ===== 5. 渲染角色 tabs =====
   function renderRoleTabs() {
     roleTabsEl.innerHTML = "";
     roles.forEach((role) => {
@@ -109,8 +111,9 @@
 
   // ===== 6. 渲染快捷問題 =====
   function renderQuickQuestions() {
+    if (!quickQuestionsEl) return;
     quickQuestionsEl.innerHTML = "";
-    currentRole.samples.forEach((q) => {
+    (currentRole.samples || []).forEach((q) => {
       const btn = document.createElement("button");
       btn.className = "quick-question";
       btn.textContent = q;
@@ -128,7 +131,7 @@
 
     msgs.forEach((m) => {
       const wrapper = document.createElement("div");
-      wrapper.className = "msg " + m.type;
+      wrapper.className = "msg " + (m.type || "ai");
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
@@ -141,50 +144,44 @@
     chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
   }
 
-  // ===== 8. 發送訊息 =====
+  // ===== 8. 發送訊息到後端 =====
   async function sendMessage(text) {
-    const t = text.trim();
+    const t = (text || "").trim();
     if (!t) return;
 
     const role = currentRole;
     ensureConversation(role);
     conversations[role.id].push({ type: "user", text: t });
     renderConversation();
-    userInputEl.value = "";
+    if (userInputEl) userInputEl.value = "";
 
     try {
       const resp = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roleId: role.id,
           userId,
           message: t,
+          roleId: role.id,
         }),
       });
 
-      if (!resp.ok) {
-        throw new Error("API 回應非 200");
-      }
-
       const data = await resp.json();
-      const reply = data.reply || "抱歉，暫時無法取得回覆，稍後再試一次。";
+      const reply = data.reply || data.message || "（無回應內容）";
 
-      conversations[role.id].push({ type: "bot", text: reply });
+      conversations[role.id].push({ type: "ai", text: reply });
       renderConversation();
     } catch (err) {
       console.error(err);
       conversations[role.id].push({
-        type: "bot",
-        text: "抱歉，系統好像有點忙，請稍後再試一次。",
+        type: "ai",
+        text: "伺服器忙碌中，請稍後再試。",
       });
       renderConversation();
     }
   }
 
-  // ===== 9. 切換角色 =====
+  // ===== 9. 切換角色（給 tabs / 建築用） =====
   function switchRole(roleId) {
     const role = roles.find((r) => r.id === roleId);
     if (!role) return;
@@ -195,39 +192,60 @@
     renderRoleTabs();
     renderQuickQuestions();
     renderConversation();
+
+    // 通知地圖：目前是哪個角色，拿來做建築高亮
+    if (window.chTownMapSetActiveRole) {
+      window.chTownMapSetActiveRole(role.id);
+    }
   }
 
-  // ⭐ 給 NPC 用：點人物 → 切角色 + 在右側說一句歡迎話
+  // ===== 10. NPC 主動講話（給 game.js 呼叫） =====
   function npcQuickTalk(roleId, text) {
     const role = roles.find((r) => r.id === roleId);
     if (!role) return;
 
     currentRole = role;
     ensureConversation(role);
-    conversations[role.id].push({ type: "bot", text });
+    conversations[role.id].push({
+      type: "ai",
+      text: text,
+    });
+
     updateRoleHeader(role);
     renderRoleTabs();
     renderQuickQuestions();
     renderConversation();
+
+    if (window.chTownMapSetActiveRole) {
+      window.chTownMapSetActiveRole(role.id);
+    }
   }
 
-  // ⭐ 給小鎮地圖用：點建築 → 切換角色
+  // ⭐ 給地圖用：點建築 → 切角色
   window.chTownSwitchRoleFromMap = function (roleId) {
     switchRole(roleId);
   };
 
-  // ⭐ 給 NPC 用：被點擊時說一句話
+  // ⭐ 給地圖用：點 NPC → 讓 NPC 說一句話
   window.chTownNpcSay = function (roleId, text) {
     npcQuickTalk(roleId, text);
   };
 
-  // ===== 10. 綁定輸入表單 =====
+  // ⭐ 給地圖用：幫使用者把建議問題填進輸入框
+  window.chTownFillUserInput = function (text) {
+    if (!userInputEl) return;
+    userInputEl.value = text || "";
+    userInputEl.focus();
+  };
+
+  // ===== 11. 綁定輸入表單 =====
   chatFormEl.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (!userInputEl) return;
     sendMessage(userInputEl.value);
   });
 
-  // ===== 11. 初始化 =====
+  // ===== 12. 初始化 =====
   ensureConversation(currentRole);
   updateRoleHeader(currentRole);
   renderRoleTabs();
