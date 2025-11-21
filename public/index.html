@@ -14,64 +14,126 @@
           <div class="brand-logo">C.H</div>
           <div class="brand-text">
             <div class="brand-title">AI TOWN</div>
-            <div class="brand-sub">洗衣 · 洗鞋 · 精品包 · 外送小鎮</div>
+            <div class="brand-sub">板橋 · 洗衣 / 洗鞋 / 洗包 智能前台</div>
           </div>
+        </div>
+        <div class="topbar-right">
+          <span class="topbar-tag">點建築 / NPC 切換角色</span>
+          <span class="topbar-tag">支援：洗鞋估價 · 小鎮導覽</span>
         </div>
       </header>
 
+      <!-- 中間：左邊小鎮 + 右邊對話 -->
       <main class="layout">
-        <!-- 左邊：大地圖 -->
+        <!-- 左側：C.H 小鎮（Phaser） -->
         <section class="town-panel">
-          <div id="game-root" class="game-root"></div>
-          <div class="town-hint">
-            💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。
+          <div class="town-header">
+            <div class="town-header-title">
+              <span>🏙️</span>
+              <span>C.H 小鎮</span>
+            </div>
+            <div class="town-hint">
+              <div class="town-hint-dot"></div>
+              <span>點建築 / NPC 會切換右側角色喔</span>
+            </div>
           </div>
+          <div id="game-root"></div>
         </section>
 
-        <!-- 右邊：AI 對話 -->
+        <!-- 右側：AI 對話 -->
         <section class="chat-panel">
-          <!-- 角色標頭：頭像 + 名稱 + badge -->
+          <!-- 角色區塊 -->
           <div class="role-header">
-            <div class="role-main">
-              <div class="role-avatar">
-                <img
-                  id="role-avatar-img"
-                  src="/images/role-cs.png"
-                  alt="角色頭像"
-                />
-              </div>
-              <div class="role-info">
-                <div class="role-label">當前角色</div>
-                <div id="current-role-name" class="role-name">C.H 客服</div>
-              </div>
+            <div class="role-avatar-wrap">
+              <img
+                id="role-avatar-img"
+                src="/images/role-cs.png"
+                alt="C.H 客服頭像"
+              />
             </div>
-
-            <div class="role-badge" id="role-badge">
-              對話 · 介紹服務 · 回覆一般問題
+            <div class="role-meta">
+              <div id="current-role-name" class="role-name">C.H 客服</div>
+              <div id="role-badge" class="role-badge">
+                對話 · 介紹服務 · 回覆一般問題
+              </div>
             </div>
           </div>
 
-          <!-- 角色切換 tabs -->
-          <div class="role-tabs" id="role-tabs"></div>
+          <!-- 角色 tabs -->
+          <div id="role-tabs" class="role-tabs"></div>
 
           <!-- 對話內容 -->
-          <div class="chat-box" id="chat-box"></div>
+          <div id="chat-box" class="chat-box"></div>
 
-          <!-- 範例問題 -->
-          <div class="quick-questions" id="quick-questions"></div>
+          <!-- 快捷問題 -->
+          <div id="quick-questions" class="quick-questions"></div>
 
-          <!-- 輸入區 -->
-          <form id="chat-form" class="input-area">
-            <input
-              id="user-input"
-              type="text"
-              placeholder="輸入想問這個角色的問題，例如：這個油漬有機會洗乾淨嗎？"
-              autocomplete="off"
-            />
-            <button type="submit">送出</button>
-          </form>
+          <!-- 底部輸入區 + 洗鞋估價按鈕 -->
+          <div class="chat-input-row">
+            <button
+              id="shoe-flow-btn"
+              type="button"
+              class="secondary-btn"
+              title="由 AI 協助逐步詢問，給你洗鞋成功率與估價區間"
+            >
+              🥿 洗鞋估價
+            </button>
+            <form id="chat-form">
+              <input
+                id="user-input"
+                type="text"
+                placeholder="輸入想問的問題，例如：這雙麂皮鞋發霉還救得回來嗎？"
+                autocomplete="off"
+              />
+              <button type="submit">送出</button>
+            </form>
+          </div>
         </section>
       </main>
+    </div>
+
+    <!-- 新手導覽 overlay -->
+    <div id="onboarding-overlay" class="onboarding-overlay">
+      <div class="onboarding-card">
+        <div class="onboarding-header">
+          <div class="onboarding-title">歡迎來到 C.H AI 小鎮 👋</div>
+          <button id="onboarding-close" class="onboarding-btn-secondary">
+            先略過
+          </button>
+        </div>
+        <div class="onboarding-step-list">
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">1</div>
+            <div>
+              <strong>左邊小鎮：</strong>點房子或 NPC，
+              右側會切換不同角色（客服、店長、師傅、外送員）。
+            </div>
+          </div>
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">2</div>
+            <div>
+              <strong>右側對話：</strong>上面是目前角色，下方有快捷問題，
+              也可以直接輸入你的狀況讓 AI 幫你分析。
+            </div>
+          </div>
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">3</div>
+            <div>
+              <strong>洗鞋估價：</strong>點右下角
+              <span style="white-space:nowrap;">「🥿 洗鞋估價」</span>
+              或點外送員 NPC，會啟動一步步問答，算給你成功率與價格區間。
+            </div>
+          </div>
+        </div>
+        <div class="onboarding-actions">
+          <button
+            id="onboarding-start-btn"
+            class="onboarding-btn-primary"
+          >
+            我懂了，開始逛小鎮
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- 先載入 Phaser，讓左邊小鎮可以運作 -->
@@ -80,7 +142,7 @@
     <!-- 右邊聊天室邏輯 -->
     <script src="/app.js"></script>
 
-    <!-- 左邊小鎮互動（點建築切換角色） -->
+    <!-- 左邊小鎮互動（點建築切換角色 / NPC 對話） -->
     <script src="/game.js"></script>
   </body>
 </html>
