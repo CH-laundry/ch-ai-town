@@ -289,6 +289,8 @@ ${pairs}
   // ===== 9. 渲染對話內容 =====
   function renderConversation() {
     const msgs = conversations[currentRole.id] || [];
+    chatBoxEl.innerHTML = [];
+
     chatBoxEl.innerHTML = "";
 
     msgs.forEach((m) => {
@@ -297,7 +299,14 @@ ${pairs}
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
-      bubble.textContent = m.text || "";
+
+      const rawText = (m.text || "").toString();
+      const displayText =
+        !rawText.trim() || rawText.includes("無回應內容")
+          ? FALLBACK_ERROR_TEXT
+          : rawText;
+
+      bubble.textContent = displayText;
 
       wrapper.appendChild(bubble);
       chatBoxEl.appendChild(wrapper);
@@ -344,6 +353,8 @@ ${pairs}
           (data.reply || data.message || data.content || data.error || ""))
           .toString()
           .trim() || "";
+
+      console.log("[chat] raw reply from /api/chat:", replyRaw);
 
       // ✅ 後端如果還有舊邏輯回「無回應內容」，在這邊直接攔截改成錯誤提示
       if (!replyRaw || replyRaw.includes("無回應內容")) {
