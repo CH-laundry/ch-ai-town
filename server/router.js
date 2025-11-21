@@ -1,11 +1,18 @@
+// server/router.js
 const express = require("express");
 const router = express.Router();
 
+// 角色模組
+// chCustomerService / storeManager 這兩個是「函式」型角色（自己會呼叫 OpenAI）
+// 其它幾個是「設定檔」型角色（只有 systemPrompt，要在這裡幫它們呼叫 OpenAI）
 const chCustomerService = require("./roles/chCustomerService");
-const storeManager = require("./roles/storeManager");
-const cleanerMaster = require("./roles/cleanerMaster");
-const ironingMaster = require("./roles/ironingMaster");
-const deliveryStaff = require("./roles/deliveryStaff");
+const storeManagerRoleFn = require("./roles/storeManager");
+const cleanerMasterRoleConfig = require("./roles/cleanerMaster");
+const ironingMasterRoleConfig = require("./roles/ironingMaster");
+const deliveryStaffRoleConfig = require("./roles/deliveryStaff");
+
+// 共用 OpenAI client（已經處理好 .env + mock）
+const openai = require("./openaiClient");
 
 /**
  * ✅ 同時支援「舊的 snake_case」跟「新的 camelCase」 roleId
@@ -13,109 +20,114 @@ const deliveryStaff = require("./roles/deliveryStaff");
  *  - 舊代碼可能還有：ch_customer_service / store_manager / cleaner_master / ironing_master / delivery_staff
  */
 const roleMap = {
-  // 舊版 snake_case
-  ch_customer_service: chCustomerService,
-  store_manager: storeManager,
-  cleaner_master: cleanerMaster,
-  ironing_master: ironingMaster,
-  delivery_staff: deliveryStaff,
-
-  // 新版 camelCase（給小鎮前台用）
+  // 新版 camelCase
   chCustomerService: chCustomerService,
-  shopManager: storeManager,
-  cleanerMaster: cleanerMaster,
-  ironingMaster: ironingMaster,
-  deliveryStaff: deliveryStaff
+  shopManager: storeManagerRoleFn,
+  cleanerMaster: cleanerMasterRoleConfig,
+  ironingMaster: ironingMasterRoleConfig,
+  deliveryStaff: deliveryStaffRoleConfig,
+
+  // 舊版 snake_case（保留相容性）
+  ch_customer_service: chCustomerService,
+  store_manager: storeManagerRoleFn,
+  cleaner_master: cleanerMasterRoleConfig,
+  ironing_master: ironingMasterRoleConfig,
+  delivery_staff: deliveryStaffRoleConfig,
 };
 
 /**
- * 統一把各個角色模組的回傳值，整理成 { reply, raw } 格式
+ * 共用：幫「各種型態角色」實際跑一輪聊天
+ * - 若角色 export 是 async function → 直接呼叫（如：chCustomerService, storeManager）
+ * - 若角色 export 是設定物件 → 使用裡面的 systemPrompt 走 openaiClient
  */
-function normalizeReply(raw, fallbackMessage) {
-  if (!raw) {
-    return {
-      reply: fallbackMessage,
-      raw: null
-    };
+async function runRoleChat(roleId, roleDef, message, userId) {
+  // 1) 函式型角色：直接丟給它處理（內部自己決定怎麼叫 OpenAI）
+  if (typeof roleDef === "function") {
+    return await roleDef(message, userId);
   }
 
-  // 角色如果直接回傳字串
-  if (typeof raw === "string") {
+  // 2) 設定檔型角色：用它的 systemPrompt 來叫 OpenAI
+  const systemPrompt =
+    roleDef.systemPrompt ||
+    `
+你是「C.H 精緻洗衣」的專業人員（角色：${
+      roleDef.displayName || roleDef.name || roleId
+    }）。
+請用專業但好懂的繁體中文，保守評估，清楚說明風險，不亂保證，必要時提醒客戶實際結果需以門市與師傅評估為準。
+  `.trim();
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.6,
+      max_tokens: 512,
+    });
+
+    const reply =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "目前系統回覆內容有點異常，建議稍後再試一次，或改由官方 LINE 詢問。";
+
     return {
-      reply: raw,
-      raw
+      reply,
+      roleId,
+      userId,
+    };
+  } catch (err) {
+    console.error(`[${roleId}] OpenAI error:`, err);
+    return {
+      reply:
+        "目前系統連線有問題，暫時沒辦法即時回答，建議稍後再試，或改由官方 LINE 詢問真人客服。",
+      roleId,
+      userId,
+      error: true,
     };
   }
-
-  // 角色回傳物件：盡量從常見欄位抓字
-  if (typeof raw === "object") {
-    const replyText =
-      raw.reply ||
-      raw.message ||
-      raw.content ||
-      "";
-
-    return {
-      reply: replyText && replyText.trim()
-        ? replyText
-        : fallbackMessage,
-      raw
-    };
-  }
-
-  // 其他奇怪型別
-  return {
-    reply: fallbackMessage,
-    raw
-  };
 }
 
+/**
+ * ✅ /chat：前端所有對話（包含小鎮、按鈕、洗鞋估價最後那題）都打這支
+ */
 router.post("/chat", async (req, res) => {
   try {
     const { userId, roleId, message } = req.body;
 
     if (!roleId || !message) {
       const msg = "系統錯誤：缺少 roleId 或 message。";
-      return res.status(400).json({
-        error: msg,
-        reply: msg
-      });
+      return res.status(400).json({ error: msg, reply: msg });
     }
 
-    const roleFn = roleMap[roleId];
+    const roleDef = roleMap[roleId];
 
-    // ✅ 避免再出現「roleFn is not a function」直接爆掉
-    if (!roleFn || typeof roleFn !== "function") {
-      const msg = `系統設定錯誤：找不到對應角色或角色未正確設定（roleId: ${roleId}）。`;
-      console.error("[ERROR /chat] invalid roleId:", roleId);
-      return res.status(400).json({
-        error: msg,
-        reply: msg
-      });
+    if (!roleDef) {
+      const msg = `系統設定錯誤：找不到對應角色（roleId: ${roleId}）。`;
+      console.error("[/api/chat] invalid roleId:", roleId);
+      return res.status(400).json({ error: msg, reply: msg });
     }
 
-    // ✅ 呼叫對應角色邏輯（各角色自己去 call OpenAI）
-    const rawResult = await roleFn(message, userId);
+    const rawResult = await runRoleChat(roleId, roleDef, message, userId);
 
-    // ✅ 統一輸出結構，前端只要讀 data.reply 就有字
-    const { reply } = normalizeReply(
-      rawResult,
-      "系統目前連線異常，請稍後再試，或改由真人客服協助。"
-    );
+    let reply =
+      (rawResult &&
+        (rawResult.reply || rawResult.message || rawResult.content || ""))
+        .toString()
+        .trim() || "";
 
-    return res.json({
-      reply,
-      roleId,
-      userId
-    });
+    // 保底：任何空字串 / 舊版「無回應內容」全部統一成錯誤提示
+    if (!reply || reply.includes("無回應內容")) {
+      reply =
+        "系統目前連線異常，請稍後再試，或改由官方 LINE 詢問真人客服。";
+    }
+
+    return res.json({ reply, roleId, userId });
   } catch (err) {
-    console.error("[ERROR /chat]", err);
-    const msg = "系統目前連線有問題，建議稍後再試，或改由真人客服協助。";
-    // 即使 500，一樣帶 reply，讓前端有東西可以顯示
-    return res.status(500).json({
-      error: "Internal server error",
-      reply: msg
-    });
+    console.error("[/api/chat] unexpected error:", err);
+    const msg =
+      "系統目前連線有問題，建議稍後再試，或改由官方 LINE 詢問真人客服。";
+    return res.status(500).json({ error: "Internal server error", reply: msg });
   }
 });
 
@@ -129,8 +141,8 @@ router.get("/roles", (req, res) => {
       { id: "shopManager", name: "店長" },
       { id: "cleanerMaster", name: "清潔師傅" },
       { id: "ironingMaster", name: "熨燙師傅" },
-      { id: "deliveryStaff", name: "外送員" }
-    ]
+      { id: "deliveryStaff", name: "外送員" },
+    ],
   });
 });
 
