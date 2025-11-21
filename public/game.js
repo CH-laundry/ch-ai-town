@@ -1,5 +1,5 @@
 // public/game.js
-// C.H AI Town 小鎮：2D 房子圖片 + NPC 互動 + 建築高亮
+// C.H AI Town 小鎮：2D 房子圖片 + NPC 互動 + 建築高亮 + 基本動畫
 
 (function () {
   const ROOT_ID = "game-root";
@@ -16,7 +16,7 @@
       parent: ROOT_ID,
       width,
       height,
-      backgroundColor: "#0b1020",
+      backgroundColor: "#050814",
       scene: { preload, create, update },
     };
 
@@ -51,21 +51,20 @@
     const centerX = w / 2;
     const centerY = h / 2;
 
-    // ===== 背景大框 =====
+    // 背景大卡片
     const bg = scene.add
-      .rectangle(centerX, centerY, w * 0.96, h * 0.96, 0x151933)
+      .rectangle(centerX, centerY, w * 0.96, h * 0.96, 0x111528)
       .setStrokeStyle(2, 0x343b5d);
     bg.setOrigin(0.5, 0.5);
+    bg.setDepth(-1);
 
-    // ===== 馬路：垂直 =====
+    // ===== 馬路：垂直 + 水平 =====
     const roadWidth = w * 0.08;
     scene.add
-      .rectangle(centerX, centerY, roadWidth, h * 0.8, 0x22263d)
+      .rectangle(centerX, centerY, roadWidth, h * 0.8, 0x1f2438)
       .setStrokeStyle(1, 0x3a415d);
-
-    // ===== 馬路：水平（上方）=====
     scene.add
-      .rectangle(centerX, h * 0.42, w * 0.8, roadWidth * 0.72, 0x22263d)
+      .rectangle(centerX, h * 0.42, w * 0.8, roadWidth * 0.72, 0x1f2438)
       .setStrokeStyle(1, 0x3a415d);
 
     // 虛線
@@ -92,6 +91,17 @@
       const displayWidth = house.width * scale;
       const displayHeight = house.height * scale;
 
+      const glow = scene.add
+        .rectangle(
+          0,
+          displayHeight * 0.15,
+          displayWidth * 1.05,
+          displayHeight * 1.25,
+          0x4d6bff,
+          0.06
+        )
+        .setOrigin(0.5, 0.5);
+
       const titleText = scene.add
         .text(0, -displayHeight * 0.6, title, {
           fontSize: 16,
@@ -107,19 +117,39 @@
         })
         .setOrigin(0.5, 0.5);
 
-      container.add([house, titleText, subtitleText]);
+      container.add([glow, house, titleText, subtitleText]);
 
       const hit = scene.add
-        .rectangle(0, 0, displayWidth * 1.05, displayHeight * 1.1, 0xffffff, 0)
+        .rectangle(0, 0, displayWidth * 1.1, displayHeight * 1.3, 0xffffff, 0)
         .setOrigin(0.5, 0.5)
         .setInteractive({ useHandCursor: true });
+
+      hit.on("pointerover", () => {
+        scene.tweens.add({
+          targets: container,
+          scaleX: 1.04,
+          scaleY: 1.04,
+          duration: 140,
+          ease: "Quad.easeOut",
+        });
+      });
+
+      hit.on("pointerout", () => {
+        scene.tweens.add({
+          targets: container,
+          scaleX: 1.0,
+          scaleY: 1.0,
+          duration: 140,
+          ease: "Quad.easeOut",
+        });
+      });
 
       hit.on("pointerdown", () => {
         if (typeof onClick === "function") onClick();
         scene.tweens.add({
           targets: container,
-          scaleX: container.scaleX * 1.04,
-          scaleY: container.scaleY * 1.04,
+          scaleX: 1.06,
+          scaleY: 1.06,
           yoyo: true,
           duration: 130,
           ease: "Quad.easeInOut",
@@ -129,7 +159,7 @@
       container.add(hit);
 
       if (roleId) {
-        buildingByRole[roleId] = { container, house, titleText };
+        buildingByRole[roleId] = { container, house, titleText, glow };
       }
 
       return { container, displayHeight };
@@ -164,7 +194,7 @@
       },
     });
 
-    const delivery = createBuilding({
+    createBuilding({
       x: centerX - w * 0.22,
       y: h * 0.7,
       key: "building-delivery",
@@ -181,19 +211,21 @@
     // ===== 建築高亮：目前角色 =====
     function setActiveRoleOnMap(roleId) {
       Object.entries(buildingByRole).forEach(([key, info]) => {
-        const { container, house, titleText } = info;
-        if (!container || !house || !titleText) return;
+        const { container, house, titleText, glow } = info;
+        if (!container || !house || !titleText || !glow) return;
 
         if (key === roleId) {
           container.setScale(1.05);
           container.alpha = 1;
           house.clearTint();
           titleText.setColor("#ffe08a");
+          glow.setFillStyle(0x6a8dff, 0.18);
         } else {
           container.setScale(1.0);
           container.alpha = 0.9;
           house.setTint(0xb0b5c8);
           titleText.setColor("#fdf2ff");
+          glow.setFillStyle(0x4d6bff, 0.06);
         }
       });
     }
@@ -206,7 +238,7 @@
       setActiveRoleOnMap(roleId);
     };
 
-    // ===== 主角粉紅圓點（保留舊操作） =====
+    // ===== 主角粉紅圓點 =====
     const startX = centerX;
     const startY = h * 0.55;
 
@@ -233,6 +265,44 @@
     // 鍵盤方向鍵
     scene.cursors = scene.input.keyboard.createCursorKeys();
 
+    // ===== NPC 工具：生成頭上氣泡 =====
+    function createNpcBubble(text, x, y) {
+      const paddingX = 8;
+      const paddingY = 4;
+      const txt = scene.add.text(0, 0, text, {
+        fontSize: 11,
+        color: "#f7f7ff",
+        wordWrap: { width: w * 0.22 },
+      });
+      txt.setOrigin(0.5, 0.5);
+      const bounds = txt.getBounds();
+
+      const bg = scene.add
+        .rectangle(
+          0,
+          0,
+          bounds.width + paddingX * 2,
+          bounds.height + paddingY * 2,
+          0x11192e,
+          0.85
+        )
+        .setStrokeStyle(1, 0x4f5c9a)
+        .setOrigin(0.5, 0.5);
+
+      const container = scene.add.container(x, y, [bg, txt]);
+      container.setAlpha(0.0);
+
+      scene.tweens.add({
+        targets: container,
+        alpha: 1,
+        y: y - 4,
+        duration: 600,
+        ease: "Sine.easeOut",
+      });
+
+      return container;
+    }
+
     // ===== NPC：門市客服（可點擊） =====
     const npcCs = scene.add.image(
       store.container.x,
@@ -241,6 +311,13 @@
     );
     const npcCsScale = (w * 0.07) / npcCs.width;
     npcCs.setScale(npcCsScale).setInteractive({ useHandCursor: true });
+    npcCs.setDepth(2);
+
+    createNpcBubble(
+      "有問題找我聊聊 💬",
+      npcCs.x,
+      npcCs.y - npcCs.displayHeight * npcCsScale - 12
+    );
 
     npcCs.on("pointerdown", () => {
       if (window.chTownSwitchRoleFromMap) {
@@ -253,13 +330,13 @@
         );
       }
       if (window.chTownFillUserInput) {
-        window.chTownFillUserInput("這個污漬大概能處理到什麼程度？");
+        window.chTownFillUserInput("想問一下這個髒污大概能處理到什麼程度？");
       }
     });
 
     scene.tweens.add({
       targets: npcCs,
-      y: npcCs.y - 8,
+      y: npcCs.y - 6,
       duration: 1500,
       yoyo: true,
       repeat: -1,
@@ -274,6 +351,13 @@
     );
     const npcIronScale = (w * 0.07) / npcIron.width;
     npcIron.setScale(npcIronScale).setInteractive({ useHandCursor: true });
+    npcIron.setDepth(2);
+
+    createNpcBubble(
+      "想問西裝 / 禮服整理？",
+      npcIron.x,
+      npcIron.y - npcIron.displayHeight * npcIronScale - 10
+    );
 
     npcIron.on("pointerdown", () => {
       if (window.chTownSwitchRoleFromMap) {
@@ -286,13 +370,15 @@
         );
       }
       if (window.chTownFillUserInput) {
-        window.chTownFillUserInput("西裝整燙大概要多久、會不會傷布料？");
+        window.chTownFillUserInput(
+          "我的西裝有點皺又怕傷布料，可以怎麼整理比較安全？"
+        );
       }
     });
 
     scene.tweens.add({
       targets: npcIron,
-      x: npcIron.x + 10,
+      x: npcIron.x + 8,
       duration: 1800,
       yoyo: true,
       repeat: -1,
@@ -306,7 +392,16 @@
       "npc-delivery"
     );
     const npcDelScale = (w * 0.09) / npcDelivery.width;
-    npcDelivery.setScale(npcDelScale).setInteractive({ useHandCursor: true });
+    npcDelivery
+      .setScale(npcDelScale)
+      .setInteractive({ useHandCursor: true });
+    npcDelivery.setDepth(2);
+
+    createNpcBubble(
+      "想估洗鞋 / 問收送，就找我 🚚",
+      npcDelivery.x,
+      npcDelivery.y - npcDelivery.displayHeight * npcDelScale - 10
+    );
 
     npcDelivery.on("pointerdown", () => {
       if (window.chTownSwitchRoleFromMap) {
@@ -318,8 +413,9 @@
           "我是收送外送員～想問板橋、中和、永和收送時間或改約，都可以丟給我。"
         );
       }
-      if (window.chTownFillUserInput) {
-        window.chTownFillUserInput("今天晚上還來得及收件送洗嗎？");
+      if (window.chTownStartShoeQuote) {
+        // 讓外送員直接帶你進「洗鞋估價流程」，但由清潔師傅回答
+        window.chTownStartShoeQuote("cleanerMaster");
       }
     });
 
