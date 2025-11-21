@@ -2,6 +2,10 @@
 // 左邊大地圖、右邊對話，角色頭像 + tabs 切換 + NPC 互動 + 新手導覽 + 洗鞋估價流程
 
 (function () {
+  // ===== 0. 統一錯誤訊息（前端最後防線） =====
+  const FALLBACK_ERROR_TEXT =
+    "系統目前連線異常，請稍後再試，或改由官方 LINE 詢問真人客服。";
+
   // ===== 1. 角色設定（id 要對應後端 roleMap） =====
   const roles = [
     {
@@ -44,9 +48,7 @@
       icon: "🧺",
       avatar: "/images/role-ironing.png",
       badge: "熨燙細節 · 版型與變形風險",
-      samples: [
-        "西裝可以整燙到很挺但不傷布料嗎？",
-      ],
+      samples: ["西裝可以整燙到很挺但不傷布料嗎？"],
     },
     {
       id: "deliveryStaff",
@@ -131,7 +133,8 @@
   let currentFlow = null; // { type: "shoe-quote", step: number, answers: [] }
 
   function startShoeQuoteFlow(preferRoleId) {
-    const role = roles.find((r) => r.id === (preferRoleId || "cleanerMaster")) || roles[2];
+    const role =
+      roles.find((r) => r.id === (preferRoleId || "cleanerMaster")) || roles[2];
     currentRole = role;
     ensureConversation(role);
 
@@ -294,7 +297,7 @@ ${pairs}
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
-      bubble.textContent = m.text;
+      bubble.textContent = m.text || "";
 
       wrapper.appendChild(bubble);
       chatBoxEl.appendChild(wrapper);
@@ -323,28 +326,41 @@ ${pairs}
         throw new Error("API 回傳非 200 狀態");
       }
 
-      const data = await resp.json();
-      const reply =
-        (data &&
-          (data.reply || data.message || data.content || "").toString().trim()) ||
-        "";
-
-      if (reply) {
-        conversations[role.id].push({ type: "ai", text: reply });
-      } else {
-        // 真的完全拿不到內容時，給一個最低限度的錯誤提示
+      let data;
+      try {
+        data = await resp.json();
+      } catch (parseErr) {
+        console.error("[chat] JSON parse error:", parseErr);
         conversations[role.id].push({
           type: "ai",
-          text: "系統回覆內容異常，建議稍後再試，或直接透過官方 LINE 詢問人工客服。",
+          text: FALLBACK_ERROR_TEXT,
         });
+        renderConversation();
+        return;
+      }
+
+      let replyRaw =
+        (data &&
+          (data.reply || data.message || data.content || data.error || ""))
+          .toString()
+          .trim() || "";
+
+      // ✅ 後端如果還有舊邏輯回「無回應內容」，在這邊直接攔截改成錯誤提示
+      if (!replyRaw || replyRaw.includes("無回應內容")) {
+        conversations[role.id].push({
+          type: "ai",
+          text: FALLBACK_ERROR_TEXT,
+        });
+      } else {
+        conversations[role.id].push({ type: "ai", text: replyRaw });
       }
 
       renderConversation();
     } catch (err) {
-      console.error(err);
+      console.error("[chat] fetch error:", err);
       conversations[role.id].push({
         type: "ai",
-        text: "系統目前連線有問題，沒辦法取得即時回答，可以稍後再試一次，或改用官方 LINE 詢問。",
+        text: FALLBACK_ERROR_TEXT,
       });
       renderConversation();
     }
