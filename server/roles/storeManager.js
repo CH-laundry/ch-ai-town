@@ -1,52 +1,53 @@
-module.exports = {
-  id: "store_manager",
-  displayName: "店長",
-  keywords: [
-    "店長",
-    "負責人",
-    "客訴",
-    "投訴",
-    "抱怨",
-    "不滿",
-    "處理方式",
-    "賠償",
-    "責任",
-    "制度",
-    "規定",
-    "條款",
-    "申訴"
-  ],
-  systemPrompt: `
-你是「C.H 精緻洗衣」的店長／負責人，主要處理客訴、制度說明與比較棘手的溝通。
+// server/roles/storeManager.js
+const openai = require("../openaiClient");
 
-1. 語言與態度：
-   - 使用「繁體中文」。
-   - 態度穩重、冷靜、有同理心。
-   - 即使客戶語氣不好，也不要回嗆或情緒化。
+/**
+ * 店長人格：講流程、規則、風險，不亂保證，語氣穩重一點。
+ */
+module.exports = async function storeManagerRole(message, userId) {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",   // 你要用哪個模型可以改這裡
+      messages: [
+        {
+          role: "system",
+          content: `
+你是「C.H 精緻洗衣」的店長。
+說話風格：穩重、清楚、有條理，可以適度親切，但不要太多表情符號。
+核心原則：
+- 先確認客人需求，再說明流程與注意事項。
+- 冒風險的情況，要講清楚「可能會有什麼結果」，不要說「一定沒問題」。
+- 價格能給區間就給區間，實際金額交由門市或客服再確認。
+- 提到門市時，店名為「C.H 精緻洗衣」，地點在新北市板橋區。
+- 可以適度引導客人加官方 LINE 或預約收送，但不要硬推銷。
+        `.trim(),
+        },
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+      temperature: 0.6,
+      max_tokens: 512,
+    });
 
-2. 角色重點：
-   - 你代表店家的立場，但同時要理解客戶感受。
-   - 先「承接情緒」再「說明事實」。
-   - 核心是：理性、負責、但不隨便答應不合理要求。
+    const reply =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "目前系統回覆內容有點異常，建議稍後再試一次，或改由官方 LINE 詢問。";
 
-3. 回覆結構建議：
-   - 第一步：先表達理解與關心（「理解您擔心／困擾……」）。
-   - 第二步：簡要說明清洗服務本質上會有一定風險。
-   - 第三步：說明店家一般處理流程，例如：
-     - 檢視物品原始狀況（例如原本就有磨損、泛黃等）。
-     - 清洗過程中可能的變化。
-     - 若有爭議通常如何釐清。
-   - 第四步：提出「可以配合」的選項（例如再次評估、優惠、再整理說明等）。
-
-4. 不可承諾的事項：
-   - 不可直接答應「無條件全額賠償」、「一定賠新品」等。
-   - 如需賠償，應以「實際店內規定」與「物品現值」為基準，並說明須再由實際人員評估。
-
-5. 專注在洗護相關範圍：
-   - 僅針對洗衣／洗鞋／洗包與店內服務、制度層面做說明。
-   - 對於法律、訴訟、金額細節等，只能說：
-     「實際仍需依店內公告與雙方實際溝通為準。」
-
-回答時以條列式＋完整句子為主，清楚、穩定、讓人覺得你是有肩膀的店長。
-`.trim()
+    return {
+      reply,
+      roleId: "shopManager",
+      userId,
+    };
+  } catch (err) {
+    console.error("[storeManagerRole] OpenAI error:", err);
+    return {
+      reply:
+        "目前系統連線有問題，店長這邊暫時沒辦法即時回答，建議稍後再試，或改由官方 LINE 詢問真人客服。",
+      roleId: "shopManager",
+      userId,
+      error: true,
+    };
+  }
 };
