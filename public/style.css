@@ -7,24 +7,39 @@
   padding: 0;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-  background: radial-gradient(circle at top, #181b32 0%, #050712 60%);
+  background:
+    radial-gradient(circle at top, #262f62 0%, #050712 55%) fixed,
+    linear-gradient(135deg, #060715, #05030b) fixed;
   color: #f7f7ff;
 }
 
 /* ===== 整體 layout ===== */
-
 .page {
   min-height: 100vh;
-  padding: 16px 16px 24px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+/* 上方品牌列 */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(33, 40, 84, 0.96), rgba(15, 18, 42, 0.96));
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(158, 169, 255, 0.15);
 }
 
 .brand {
@@ -37,12 +52,16 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  background: #ff6b81;
+  background: radial-gradient(circle at 30% 30%, #ffe9f0 0%, #ff6b81 45%, #c53b7f 90%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
+  color: #1d1021;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.25),
+    0 8px 18px rgba(0, 0, 0, 0.55);
 }
 
 .brand-text {
@@ -51,178 +70,218 @@ body {
 }
 
 .brand-title {
-  font-weight: 600;
   font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
 .brand-sub {
+  font-size: 12px;
+  color: #c3c7ff;
+}
+
+/* 右上小提示 */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #cbd1ff;
+}
+
+.topbar-tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(185, 196, 255, 0.3);
+  background: radial-gradient(circle at top, rgba(143, 182, 255, 0.28), rgba(38, 49, 116, 0.6));
   font-size: 11px;
-  opacity: 0.7;
 }
 
+/* ===== 中間主體：左地圖 + 右對話 ===== */
 .layout {
+  flex: 1;
   display: grid;
-  grid-template-columns: minmax(320px, 52%) minmax(320px, 48%);
+  grid-template-columns: minmax(340px, 52%) minmax(320px, 48%);
   gap: 14px;
-  height: calc(100vh - 70px);
+  min-height: 0;
 }
 
-/* ===== 左側：大地圖 ===== */
-
+/* 左側：小鎮 */
 .town-panel {
   background: radial-gradient(circle at top, #222744 0%, #080912 70%);
-  border-radius: 18px;
-  border: 1px solid #2d3254;
+  border-radius: 24px;
+  border: 1px solid rgba(133, 145, 210, 0.4);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(43, 53, 112, 0.8);
   padding: 10px;
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 
-.game-root {
-  flex: 1;
-  min-height: 420px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: radial-gradient(circle at top, #202544 0%, #050814 60%);
-  display: block;
-}
-
-.town-hint {
-  margin-top: 8px;
-  font-size: 11px;
-  opacity: 0.75;
-}
-
-/* ===== 右側：聊天面板 ===== */
-
-.chat-panel {
-  background: radial-gradient(circle at top, #252742 0%, #0b0d19 60%);
-  border-radius: 18px;
-  border: 1px solid #353a5a;
-  padding: 12px 12px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* 角色標頭（右側） */
-
-.role-header {
+.town-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 2px 4px 0;
+  font-size: 12px;
+  color: #c5cbff;
 }
 
-.role-main {
+.town-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.town-header-title span:first-child {
+  font-size: 18px;
+}
+
+.town-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.85;
+}
+
+.town-hint-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #ffeef9 0%, #ff8fb5 55%, #f54b8a 90%);
+  box-shadow: 0 0 10px rgba(255, 139, 181, 0.9);
+}
+
+/* Phaser 畫面容器 */
+#game-root {
+  flex: 1;
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(circle at 20% 0%, #2a315c, #050711 75%);
+}
+
+/* 右側：對話區 */
+.chat-panel {
+  background: radial-gradient(circle at top, #22253d 0%, #090a12 70%);
+  border-radius: 24px;
+  border: 1px solid rgba(142, 157, 236, 0.5);
+  box-shadow:
+    0 20px 46px rgba(0, 0, 0, 0.85),
+    inset 0 0 0 1px rgba(46, 57, 124, 0.7);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 10px;
+  gap: 8px;
+}
+
+/* 角色標頭 */
+.role-header {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.role-avatar {
-  width: 40px;
-  height: 40px;
+.role-avatar-wrap {
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.08);
+  padding: 3px;
+  background: radial-gradient(circle at 30% 30%, #ffe0ff 0%, #ff89b4 40%, #9c59ff 85%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 12px 24px rgba(0, 0, 0, 0.7);
 }
 
-.role-avatar img {
+.role-avatar-wrap img {
   width: 100%;
   height: 100%;
+  border-radius: 999px;
   object-fit: cover;
+  background: #050711;
 }
 
-.role-info {
+.role-meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.role-label {
-  font-size: 11px;
-  opacity: 0.7;
-}
-
 .role-name {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .role-badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  color: #c3c8ff;
 }
 
 /* 角色 tabs */
-
 .role-tabs {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 6px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.role-tabs::-webkit-scrollbar {
-  height: 4px;
-}
-
-.role-tabs::-webkit-scrollbar-thumb {
-  background: rgba(120, 130, 170, 0.7);
-  border-radius: 999px;
 }
 
 .role-tab {
-  flex: 0 0 auto;
-  padding: 6px 10px;
+  border: none;
+  padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  border: 1px solid #41466d;
-  background: rgba(17, 20, 38, 0.7);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  background: rgba(37, 44, 91, 0.9);
+  color: #cfd5ff;
   cursor: pointer;
-  white-space: nowrap;
+  transition: all 0.15s ease-out;
+  box-shadow: 0 0 0 1px rgba(80, 94, 176, 0.6);
 }
 
-.role-tab span.icon {
-  font-size: 14px;
-}
-
-.role-tab span.label {
-  font-size: 12px;
+.role-tab:hover {
+  background: rgba(76, 89, 165, 0.96);
+  box-shadow:
+    0 0 0 1px rgba(157, 172, 255, 0.8),
+    0 4px 10px rgba(0, 0, 0, 0.6);
 }
 
 .role-tab.active {
-  background: linear-gradient(135deg, #ff6b81, #ffb770);
-  border-color: transparent;
-  color: #1a1020;
+  background: linear-gradient(135deg, #ff88b3, #ffa94d);
+  color: #21101d;
+  font-weight: 700;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 5px 14px rgba(0, 0, 0, 0.8);
 }
 
-/* 對話框 */
-
+/* 對話內容區 */
 .chat-box {
   flex: 1;
-  margin-top: 6px;
-  padding: 10px;
-  border-radius: 14px;
-  border: 1px solid #343a5e;
-  background: radial-gradient(circle at top, #181b35 0%, #050616 70%);
+  margin-top: 4px;
+  padding: 8px 8px 6px;
+  border-radius: 16px;
+  background: radial-gradient(circle at top, rgba(15, 20, 47, 0.9), rgba(6, 9, 24, 0.96));
   overflow-y: auto;
-  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
+/* 訊息泡泡 */
 .msg {
-  max-width: 92%;
-  margin-bottom: 8px;
   display: flex;
+  max-width: 100%;
+}
+
+.msg .bubble {
+  padding: 6px 9px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .msg.system {
@@ -230,90 +289,226 @@ body {
 }
 
 .msg.system .bubble {
-  background: rgba(88, 117, 255, 0.08);
-  border: 1px dashed rgba(142, 164, 255, 0.6);
-  color: #e6e7ff;
-  font-size: 12px;
+  background: rgba(77, 99, 185, 0.15);
+  color: #b5c5ff;
+  font-size: 11px;
 }
 
 .msg.user {
   justify-content: flex-end;
 }
 
+.msg.user .bubble {
+  border-bottom-right-radius: 4px;
+  background: linear-gradient(135deg, #ff8fb1, #ffc26a);
+  color: #281117;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
 .msg.ai {
   justify-content: flex-start;
 }
 
-.bubble {
-  padding: 8px 10px;
-  border-radius: 12px;
-  line-height: 1.5;
-}
-
-.msg.user .bubble {
-  background: linear-gradient(135deg, #ff6b81, #ffb770);
-  color: #140f16;
-}
-
 .msg.ai .bubble {
-  background: rgba(9, 15, 40, 0.9);
-  border: 1px solid #3d456c;
+  border-bottom-left-radius: 4px;
+  background: rgba(24, 29, 68, 0.96);
+  border: 1px solid rgba(104, 123, 221, 0.7);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(12, 19, 59, 0.8);
 }
 
-/* 範例問題 */
-
+/* 快捷問題區 */
 .quick-questions {
-  margin-top: 4px;
+  margin-top: 6px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.quick-questions button {
-  font-size: 11px;
-  padding: 4px 8px;
+.quick-question {
+  border: none;
+  padding: 4px 9px;
   border-radius: 999px;
-  border: 1px solid #40466b;
-  background: rgba(10, 14, 34, 0.9);
-  color: #e7e7ff;
+  font-size: 11px;
+  background: rgba(44, 54, 111, 0.9);
+  color: #dde3ff;
   cursor: pointer;
+  white-space: nowrap;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  border: 1px solid rgba(90, 110, 192, 0.8);
+  transition: all 0.15s ease-out;
 }
 
-/* 輸入區 */
+.quick-question:hover {
+  background: rgba(75, 93, 170, 0.95);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
 
-.input-area {
-  margin-top: 6px;
+.quick-question-accent {
+  background: linear-gradient(135deg, #ff93b8, #ffc96b);
+  color: #2a1322;
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+/* 底部輸入區 */
+.chat-input-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.chat-input-row form {
+  flex: 1;
   display: flex;
   gap: 6px;
 }
 
-.input-area input {
+.chat-input-row input[type="text"] {
   flex: 1;
-  padding: 9px 10px;
   border-radius: 999px;
-  border: 1px solid #3c4264;
-  background: rgba(7, 9, 24, 0.95);
-  color: #f5f5ff;
+  border: 1px solid rgba(132, 150, 228, 0.7);
+  padding: 7px 11px;
   font-size: 13px;
+  background: rgba(7, 9, 26, 0.96);
+  color: #f5f6ff;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(18, 24, 64, 0.9);
 }
 
-.input-area input::placeholder {
-  color: rgba(179, 184, 219, 0.7);
+.chat-input-row input[type="text"]::placeholder {
+  color: #838ab6;
 }
 
-.input-area button {
-  padding: 0 16px;
+.chat-input-row button[type="submit"] {
   border-radius: 999px;
   border: none;
-  background: linear-gradient(135deg, #ff6b81, #ffb770);
-  color: #1a0f1a;
-  font-weight: 600;
+  padding: 7px 14px;
   font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8fd3ff, #9a8cff);
+  color: #07111b;
+  box-shadow:
+    0 0 0 1px rgba(230, 243, 255, 0.8),
+    0 7px 18px rgba(0, 0, 0, 0.8);
+}
+
+.chat-input-row button[type="submit"]:hover {
+  background: linear-gradient(135deg, #9fe0ff, #b09bff);
+}
+
+.chat-input-row .secondary-btn {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  border: 1px solid rgba(145, 160, 240, 0.9);
+  background: radial-gradient(circle at top, rgba(159, 174, 255, 0.3), rgba(32, 40, 99, 0.95));
+  color: #e0e5ff;
   cursor: pointer;
 }
 
-/* 滾動條 */
+/* ===== 新手導覽 overlay ===== */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(34, 39, 89, 0.95), rgba(3, 4, 10, 0.98));
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
 
+.onboarding-overlay.visible {
+  display: flex;
+}
+
+.onboarding-card {
+  width: min(520px, 92vw);
+  background: radial-gradient(circle at top, #252a52, #101329);
+  border-radius: 22px;
+  padding: 18px 18px 14px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 1px rgba(177, 188, 255, 0.35);
+  border: 1px solid rgba(207, 218, 255, 0.55);
+}
+
+.onboarding-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.onboarding-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.onboarding-step-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.onboarding-step {
+  display: flex;
+  gap: 6px;
+}
+
+.onboarding-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff8fb4, #ffc971);
+  color: #26111b;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.onboarding-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.onboarding-btn-primary {
+  border-radius: 999px;
+  border: none;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8fd3ff, #b19bff);
+  color: #050815;
+  box-shadow:
+    0 0 0 1px rgba(234, 243, 255, 0.9),
+    0 10px 22px rgba(0, 0, 0, 0.9);
+}
+
+.onboarding-btn-secondary {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid rgba(166, 178, 255, 0.85);
+  background: rgba(15, 19, 49, 0.96);
+  color: #d3ddff;
+  cursor: pointer;
+}
+
+/* ===== 滾動條 ===== */
 .chat-box::-webkit-scrollbar {
   width: 6px;
 }
@@ -321,4 +516,16 @@ body {
 .chat-box::-webkit-scrollbar-thumb {
   background: rgba(120, 130, 170, 0.6);
   border-radius: 999px;
+}
+
+/* ===== 響應式 ===== */
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(320px, 420px) auto;
+  }
+
+  .town-panel {
+    min-height: 320px;
+  }
 }
