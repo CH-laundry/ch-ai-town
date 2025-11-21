@@ -102,15 +102,11 @@ body {
   flex: 1;
   display: grid;
 
-  /* ★★★ 關鍵修改：固定合理寬度，避免右側被撐滿整個螢幕 ★★★ */
-  grid-template-columns: minmax(340px, 480px) minmax(360px, 680px);
+  /* ⭐ 改成左邊大、右邊小，吃滿整個寬度 */
+  grid-template-columns: minmax(420px, 60%) minmax(360px, 40%);
 
   gap: 14px;
   min-height: 0;
-
-  /* 讓整個主體區不會無限拉寬，居中顯示 */
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 /* 左側：小鎮 */
@@ -181,6 +177,12 @@ body {
   flex-direction: column;
   padding: 12px 14px 10px;
   gap: 8px;
+}
+
+/* 🔒 限制右側所有圖片尺寸（避免頭像整張放大） */
+.chat-panel img {
+  max-width: 80px;
+  max-height: 80px;
 }
 
 /* 角色標頭 */
@@ -530,7 +532,6 @@ body {
   .layout {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(320px, 420px) auto;
-    max-width: 100%;
   }
 
   .town-panel {
