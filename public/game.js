@@ -1,5 +1,5 @@
 // public/game.js
-// C.H AI Town 小鎮：2D 房子圖片 + NPC 互動 + 建築高亮 + 基本動畫
+// C.H AI TOWN 小鎮：強制縮放圖片，不管原始尺寸多大，畫面都不會爆掉
 
 (function () {
   const ROOT_ID = "game-root";
@@ -30,7 +30,7 @@
 
     const game = new Phaser.Game(config);
 
-    // 監聽視窗尺寸，讓畫面在左邊 panel 裡自適應
+    // 視窗大小變化時，自適應 panel
     window.addEventListener("resize", () => {
       const rootNow = document.getElementById(ROOT_ID);
       if (!rootNow || !game.isBooted) return;
@@ -79,7 +79,7 @@
       .rectangle(centerX, h * 0.42, w * 0.8, roadWidth * 0.72, 0x1f2438)
       .setStrokeStyle(1, 0x3a415d);
 
-    // 虛線
+    // 中間虛線
     const dashCount = 7;
     const dashLen = (w * 0.8) / (dashCount * 2);
     for (let i = 0; i < dashCount; i++) {
@@ -87,40 +87,40 @@
       scene.add.rectangle(x, h * 0.42, dashLen, 3, 0x4a536f);
     }
 
-    // ===== 建築：門市 / 整燙 / 收送倉庫 =====
-    const buildingScale = Math.min(w, h) / 900;
+    // ===== 房子：全部用「固定顯示尺寸」，不吃原圖大小 =====
+    const buildingDisplayWidth = w * 0.23;   // 佔 panel 寬度約 23%
+    const buildingDisplayHeight = h * 0.24;  // 佔 panel 高度約 24%
 
     // 門市（左上）
     const storeX = centerX - w * 0.18;
     const storeY = h * 0.24;
     const store = scene.add.image(storeX, storeY, "building-store");
-    store.setScale(buildingScale);
+    store.setDisplaySize(buildingDisplayWidth, buildingDisplayHeight);
     store.setInteractive({ useHandCursor: true });
 
     // 整燙中心（右上）
     const ironX = centerX + w * 0.18;
     const ironY = h * 0.24;
     const ironing = scene.add.image(ironX, ironY, "building-ironing");
-    ironing.setScale(buildingScale);
+    ironing.setDisplaySize(buildingDisplayWidth, buildingDisplayHeight);
     ironing.setInteractive({ useHandCursor: true });
 
     // 收送倉庫（左下）
     const deliX = centerX - w * 0.18;
     const deliY = h * 0.66;
     const delivery = scene.add.image(deliX, deliY, "building-delivery");
-    delivery.setScale(buildingScale);
+    delivery.setDisplaySize(buildingDisplayWidth, buildingDisplayHeight);
     delivery.setInteractive({ useHandCursor: true });
 
     // ===== 建築高亮框 =====
-    const highlightPadding = 18 * buildingScale;
     function createHighlight(target) {
       const bounds = target.getBounds();
       const rect = scene.add
         .rectangle(
           bounds.centerX,
           bounds.centerY,
-          bounds.width + highlightPadding,
-          bounds.height + highlightPadding,
+          bounds.width + 14,
+          bounds.height + 14,
           0x000000,
           0
         )
@@ -143,40 +143,44 @@
       if (roleId === "deliveryStaff") deliveryHL.setVisible(true);
     }
 
-    // ===== NPC：放在房子旁邊的小人物 =====
-    const npcScale = buildingScale * 0.7;
+    // ===== NPC：也強制顯示尺寸 =====
+    const npcSize = Math.min(w, h) * 0.12;
 
-    const npcCs = scene.add.image(storeX, storeY - 70 * buildingScale, "npc-cs");
-    npcCs.setScale(npcScale);
+    const npcCs = scene.add.image(
+      storeX,
+      storeY - buildingDisplayHeight * 0.55,
+      "npc-cs"
+    );
+    npcCs.setDisplaySize(npcSize, npcSize);
 
     const npcIron = scene.add.image(
-      ironX + 70 * buildingScale,
-      ironY + 10 * buildingScale,
+      ironX + buildingDisplayWidth * 0.5,
+      ironY + buildingDisplayHeight * 0.15,
       "npc-ironing"
     );
-    npcIron.setScale(npcScale);
+    npcIron.setDisplaySize(npcSize, npcSize);
 
     const npcDeli = scene.add.image(
       deliX,
-      deliY - 70 * buildingScale,
+      deliY - buildingDisplayHeight * 0.55,
       "npc-delivery"
     );
-    npcDeli.setScale(npcScale);
+    npcDeli.setDisplaySize(npcSize, npcSize);
 
     [npcCs, npcIron, npcDeli].forEach((npc) =>
       npc.setInteractive({ useHandCursor: true })
     );
 
-    // ===== 主角：目前版本是圓形光點（之後再改人物） =====
+    // ===== 主角：先用圓形光點（之後再換人物 sprite） =====
     const startX = centerX;
     const startY = h * 0.58;
 
-    const player = scene.add.circle(startX, startY, 10, 0xff93b8);
+    const player = scene.add.circle(startX, startY, 9, 0xff93b8);
     player.setStrokeStyle(2, 0xffffff);
     scene.player = player;
     scene.playerTarget = null;
 
-    // 提示：鍵盤 + 點擊移動
+    // 操作提示
     const hintText = scene.add.text(
       centerX,
       h * 0.94,
@@ -262,7 +266,7 @@
     // 初始：高亮 C.H 門市
     setActiveBuilding("chCustomerService");
 
-    // 提供給外部切換用
+    // 提供給外部切換用（app.js 用）
     window.chTownMapSetActiveRole = function (roleId) {
       setActiveBuilding(roleId);
     };
