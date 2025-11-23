@@ -18,8 +18,8 @@
       height,
       transparent: true,
       scale: {
-        mode: Phaser.Scale.RESIZE,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+        mode: Phaser.Scale.NONE,
+        autoCenter: Phaser.Scale.NO_CENTER,
       },
       scene: {
         preload,
@@ -28,9 +28,20 @@
       },
     };
 
-    new Phaser.Game(config);
+    const game = new Phaser.Game(config);
+
+    // 監聽視窗尺寸，讓畫面在左邊 panel 裡自適應
+    window.addEventListener("resize", () => {
+      const rootNow = document.getElementById(ROOT_ID);
+      if (!rootNow || !game.isBooted) return;
+      const rect = rootNow.getBoundingClientRect();
+      const w2 = Math.max(320, rect.width || width);
+      const h2 = Math.max(320, rect.height || height);
+      game.scale.resize(w2, h2);
+    });
   }
 
+  // ===== 載入圖片資源 =====
   function preload() {
     // 房子
     this.load.image("building-store", "/images/building-store.png");
@@ -43,14 +54,16 @@
     this.load.image("npc-delivery", "/images/npc-delivery.png");
   }
 
+  // ===== 建立場景 =====
   function create() {
     const scene = this;
     const w = scene.scale.width;
     const h = scene.scale.height;
+
     const centerX = w / 2;
     const centerY = h / 2;
 
-    // 背景大卡片
+    // 背景板
     const bg = scene.add
       .rectangle(centerX, centerY, w * 0.96, h * 0.96, 0x111528)
       .setStrokeStyle(2, 0x343b5d);
@@ -74,26 +87,26 @@
       scene.add.rectangle(x, h * 0.42, dashLen, 3, 0x4a536f);
     }
 
-    // ===== 建築物：三棟房子 =====
+    // ===== 建築：門市 / 整燙 / 收送倉庫 =====
     const buildingScale = Math.min(w, h) / 900;
 
     // 門市（左上）
     const storeX = centerX - w * 0.18;
-    const storeY = h * 0.25;
+    const storeY = h * 0.24;
     const store = scene.add.image(storeX, storeY, "building-store");
     store.setScale(buildingScale);
     store.setInteractive({ useHandCursor: true });
 
     // 整燙中心（右上）
     const ironX = centerX + w * 0.18;
-    const ironY = h * 0.25;
+    const ironY = h * 0.24;
     const ironing = scene.add.image(ironX, ironY, "building-ironing");
     ironing.setScale(buildingScale);
     ironing.setInteractive({ useHandCursor: true });
 
     // 收送倉庫（左下）
     const deliX = centerX - w * 0.18;
-    const deliY = h * 0.65;
+    const deliY = h * 0.66;
     const delivery = scene.add.image(deliX, deliY, "building-delivery");
     delivery.setScale(buildingScale);
     delivery.setInteractive({ useHandCursor: true });
@@ -130,7 +143,7 @@
       if (roleId === "deliveryStaff") deliveryHL.setVisible(true);
     }
 
-    // ===== NPC：貼在房子旁邊的小人 =====
+    // ===== NPC：放在房子旁邊的小人物 =====
     const npcScale = buildingScale * 0.7;
 
     const npcCs = scene.add.image(storeX, storeY - 70 * buildingScale, "npc-cs");
@@ -150,36 +163,39 @@
     );
     npcDeli.setScale(npcScale);
 
-    // NPC 都可以點擊
     [npcCs, npcIron, npcDeli].forEach((npc) =>
       npc.setInteractive({ useHandCursor: true })
     );
 
-    // ===== 主角：小人物圖示（自動縮放） =====
+    // ===== 主角：目前版本是圓形光點（之後再改人物） =====
     const startX = centerX;
-    const startY = h * 0.55;
+    const startY = h * 0.58;
 
-    // 使用 npc-delivery 當主角形象（之後你可以換成自己的 player.png）
-    const playerSprite = scene.add.image(0, 0, "npc-delivery");
-    playerSprite.setOrigin(0.5, 1);
-
-    // 依照畫面高度自動縮放，主角大約佔左側面板高度 14%
-    const targetHeight = h * 0.14;
-    const scale = targetHeight / playerSprite.height;
-    playerSprite.setScale(scale);
-
-    const playerGroup = scene.add.container(startX, startY, [playerSprite]);
-
-    scene.player = playerGroup;
+    const player = scene.add.circle(startX, startY, 10, 0xff93b8);
+    player.setStrokeStyle(2, 0xffffff);
+    scene.player = player;
     scene.playerTarget = null;
+
+    // 提示：鍵盤 + 點擊移動
+    const hintText = scene.add.text(
+      centerX,
+      h * 0.94,
+      "💡 操作提示：鍵盤方向鍵可以移動主角；手機點擊小鎮任一位置，圓形角色會走過去。",
+      {
+        fontSize: "12px",
+        color: "#d3ddff",
+      }
+    );
+    hintText.setOrigin(0.5, 0.5);
+    hintText.setAlpha(0.86);
 
     // 點地圖：主角走到指定位置
     scene.input.on("pointerdown", (pointer) => {
-      const localY = Phaser.Math.Clamp(pointer.y, h * 0.16, h * 0.82);
+      const localY = Phaser.Math.Clamp(pointer.y, h * 0.18, h * 0.86);
       const localX = Phaser.Math.Clamp(
         pointer.x,
-        centerX - w * 0.38,
-        centerX + w * 0.38
+        centerX - w * 0.42,
+        centerX + w * 0.42
       );
       scene.playerTarget = { x: localX, y: localY };
     });
@@ -252,9 +268,11 @@
     };
   }
 
+  // ===== 每禎更新：主角移動 =====
   function update() {
     const scene = this;
-    if (!scene.player) return;
+    const player = scene.player;
+    if (!player) return;
 
     const speed = 2.2;
     let vx = 0;
@@ -270,21 +288,19 @@
       const len = Math.sqrt(vx * vx + vy * vy) || 1;
       vx /= len;
       vy /= len;
-      scene.player.x += vx * speed;
-      scene.player.y += vy * speed;
+      player.x += vx * speed;
+      player.y += vy * speed;
       scene.playerTarget = null;
     } else if (scene.playerTarget) {
-      const dx = scene.playerTarget.x - scene.player.x;
-      const dy = scene.playerTarget.y - scene.player.y;
+      const dx = scene.playerTarget.x - player.x;
+      const dy = scene.playerTarget.y - player.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const eps = 3;
       if (dist <= eps) {
         scene.playerTarget = null;
       } else {
-        const nx = dx / dist;
-        const ny = dy / dist;
-        scene.player.x += nx * speed;
-        scene.player.y += ny * speed;
+        player.x += (dx / dist) * speed;
+        player.y += (dy / dist) * speed;
       }
     }
   }
