@@ -1,4 +1,6 @@
 // C.H AI TOWN v3
+console.log(">>> CH-AI-TOWN game.js v3 loaded");
+// C.H AI TOWN v3
 // - 有綠色街道背景
 // - 中央主角改成戴帽子的小男孩
 // - 每間店都有室內可走動地圖（獨立 Scene）
