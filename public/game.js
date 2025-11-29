@@ -1,7 +1,7 @@
-// C.H AI TOWN 小鎮 v3
+// C.H AI TOWN 小鎮 v3.1
 // - 夜景街道 + 綠樹 + 人行道
 // - 帶帽子小男生可移動
-// - 建築點擊：切換右側角色 + 開啟室內擺設畫面
+// - 建築點擊：切換右側角色 + 開啟室內擺設畫面（已修正位置）
 // - 紅綠燈自動循環變色
 
 (function () {
@@ -28,7 +28,7 @@
 
   function preload() {
     const scene = this;
-    // 相對路徑，避免在 LIFF 子路徑 404
+    // 相對路徑，避免在子路徑 (LIFF) 404
     scene.load.image("building-store", "images/building-store.png");
     scene.load.image("building-ironing", "images/building-ironing.png");
     scene.load.image("building-delivery", "images/building-delivery.png");
@@ -45,7 +45,7 @@
     const centerX = w / 2;
     const centerY = h / 2;
 
-    // 可移動範圍
+    // 玩家可移動範圍
     scene.mapBounds = {
       minX: centerX - w * 0.42,
       maxX: centerX + w * 0.42,
@@ -175,7 +175,6 @@
       return img;
     }
 
-    // 門市
     const storeX = centerX;
     const storeY = h * 0.25;
     scene.add
@@ -189,7 +188,6 @@
       .setStrokeStyle(1, 0x2a3144);
     const store = createBuilding(storeX, storeY, "building-store");
 
-    // 整燙中心
     const ironX = centerX + w * 0.18;
     const ironY = h * 0.66;
     scene.add
@@ -203,7 +201,6 @@
       .setStrokeStyle(1, 0x2a3144);
     const ironing = createBuilding(ironX, ironY, "building-ironing");
 
-    // 收送倉庫
     const deliX = centerX - w * 0.18;
     const deliY = h * 0.66;
     scene.add
@@ -243,7 +240,7 @@
       if (roleId === "deliveryStaff") deliHL.setVisible(true);
     }
 
-    // NPC 圖像
+    // NPC
     const npcSize = Math.min(w, h) * 0.12;
     const npcCs = scene.add.image(
       storeX + buildingW * 0.42,
@@ -269,8 +266,8 @@
     npcDeli.setDisplaySize(npcSize, npcSize);
     npcDeli.setInteractive({ useHandCursor: true });
 
-    // 室內場景
-    scene.interiorContainer = scene.add.container(centerX, centerY);
+    // ===== 室內場景：容器放在 (0,0)，裡面物件用 centerX/centerY =====
+    scene.interiorContainer = scene.add.container(0, 0);
     scene.interiorContainer.setDepth(50);
     scene.interiorContainer.setVisible(false);
     scene.isInInterior = false;
@@ -286,6 +283,13 @@
       const c = scene.interiorContainer;
       const objs = [];
 
+      // 半透明遮罩
+      const overlay = scene.add
+        .rectangle(centerX, centerY, w * 0.9, h * 0.8, 0x000000)
+        .setAlpha(0.45);
+      objs.push(overlay);
+
+      // 室內主區塊
       const floor = scene.add.rectangle(
         centerX,
         centerY,
@@ -404,8 +408,9 @@
       c.setVisible(true);
       scene.isInInterior = true;
 
+      // 點上方區塊或任一陰影區即可關閉室內
       const exitZone = scene.add
-        .rectangle(centerX, centerY - h * 0.3, w * 0.7, h * 0.08, 0x000000)
+        .rectangle(centerX, centerY - h * 0.32, w * 0.9, h * 0.1, 0x000000)
         .setAlpha(0.01)
         .setInteractive({ useHandCursor: true });
       exitZone.on("pointerdown", clearInterior);
@@ -431,7 +436,7 @@
     bindRoleClick(
       ironing,
       "ironingMaster",
-      "這邊主要負責西裝、襯衫、洋裝的整燙與定型，有關版型跟皺摺可以問我。",
+      "這邊主要負責熨燙與整型，關於版型維護、熨燙風險可以跟我討論。",
       "ironing"
     );
     bindRoleClick(
@@ -509,8 +514,9 @@
     scene.playerTarget = null;
     scene.cursors = scene.input.keyboard.createCursorKeys();
 
+    // 點地圖移動
     scene.input.on("pointerdown", (pointer) => {
-      if (scene.isInInterior) return;
+      if (scene.isInInterior) return; // 室內時不移動
       const x = Phaser.Math.Clamp(
         pointer.x,
         scene.mapBounds.minX,
@@ -524,6 +530,7 @@
       scene.playerTarget = { x, y };
     });
 
+    // 從右側角色切換時，設定高亮
     window.chTownMapSetActiveRole = function (roleId) {
       setActiveBuilding(roleId);
     };
