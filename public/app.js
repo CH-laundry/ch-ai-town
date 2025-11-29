@@ -17,7 +17,7 @@
     }
   }
 
-  // ===== 1. 角色設定（id 要對應後端 roleMap） =====
+  // ===== 1. 角色 =====
   const roles = [
     {
       id: "chCustomerService",
@@ -36,49 +36,74 @@
       name: "店長",
       icon: "🧾",
       avatar: "/images/role-manager.png",
-      badge: "掌握全局 · 說明流程與注意事項",
+      badge: "店內規則 · 價格說明 · 客訴處理",
       samples: [
-        "收件流程是怎麼跑的？",
-        "哪些情況會列入高風險清洗？",
+        "想問大約多久可以洗好？",
+        "如果洗壞了你們怎麼處理？",
+        "有會員或儲值方案嗎？",
       ],
     },
     {
       id: "cleanerMaster",
       name: "清潔師傅",
-      icon: "🧴",
+      icon: "🧼",
       avatar: "/images/role-cleaner.png",
-      badge: "分析材質 · 污漬風險與是否能清潔",
+      badge: "衣物 / 鞋子 / 包包材質與清潔建議",
       samples: [
-        "這件白襯衫黃漬能處理到什麼程度？",
-        "麂皮鞋子發霉還能救嗎？",
+        "這雙麂皮鞋發霉還救得回來嗎？",
+        "包包發黃有機會洗白嗎？",
+        "羽絨外套可以水洗嗎？",
       ],
     },
     {
       id: "ironingMaster",
       name: "熨燙師傅",
-      icon: "🧺",
+      icon: "👔",
       avatar: "/images/role-ironing.png",
-      badge: "熨燙細節 · 版型與變形風險",
-      samples: ["西裝可以整燙到很挺但不傷布料嗎？"],
+      badge: "西裝 / 襯衫定型 · 皺摺處理",
+      samples: [
+        "西裝肩線有點跑掉可以救嗎？",
+        "襯衫領子捲起來可以壓平嗎？",
+        "婚紗整燙大概怎麼處理？",
+      ],
     },
     {
       id: "deliveryStaff",
       name: "外送員",
       icon: "🚚",
       avatar: "/images/role-delivery.png",
-      badge: "收送時間 · 區域與聯絡相關問題",
+      badge: "收送安排 · 路線問題 · 洗鞋估價入口",
       samples: [
-        "板橋收送大概什麼時間可以到？",
-        "可以幫我改送回時間嗎？",
+        "請問板橋這邊有免費收送嗎？",
+        "想改一下送回的時間可以嗎？",
+        "我想估一下這雙鞋清洗大概多少。",
       ],
     },
   ];
 
   let currentRole = roles[0];
   const conversations = {};
-  const userId = "web-" + Math.random().toString(36).slice(2);
+  const MAX_MESSAGES_PER_ROLE = 60;
 
-  // ===== 2. DOM =====
+  function ensureConversation(role) {
+    if (!conversations[role.id]) {
+      conversations[role.id] = [];
+    }
+  }
+
+  function appendAiMessage(role, text) {
+    ensureConversation(role);
+    conversations[role.id].push({
+      type: "ai",
+      text,
+      time: nowTimeLabel(),
+    });
+    if (conversations[role.id].length > MAX_MESSAGES_PER_ROLE) {
+      conversations[role.id].shift();
+    }
+  }
+
+  // ===== 2. DOM 取得 =====
   const roleTabsEl = document.getElementById("role-tabs");
   const chatBoxEl = document.getElementById("chat-box");
   const quickQuestionsEl = document.getElementById("quick-questions");
@@ -122,11 +147,20 @@
     // ignore
   }
 
+  // ★ 這裡同時綁 click + touchstart，避免手機版按鈕無反應
   if (onboardingCloseEl) {
     onboardingCloseEl.addEventListener("click", hideOnboarding);
+    onboardingCloseEl.addEventListener("touchstart", function (e) {
+      e.preventDefault();
+      hideOnboarding();
+    });
   }
   if (onboardingBtnEl) {
     onboardingBtnEl.addEventListener("click", hideOnboarding);
+    onboardingBtnEl.addEventListener("touchstart", function (e) {
+      e.preventDefault();
+      hideOnboarding();
+    });
   }
 
   // ===== 4. 洗鞋估價流程狀態 =====
@@ -140,19 +174,22 @@
     "有沒有急件需求？例如：幾天內一定要穿、是否可以接受一般工作天？",
   ];
 
-  let currentFlow = null; // { type: "shoe-quote", step: number, answers: [], roleId }
+  let currentFlow = null;
 
-  function startShoeQuoteFlow(preferRoleId) {
-    const role =
-      roles.find((r) => r.id === (preferRoleId || "cleanerMaster")) || roles[2];
+  function resetFlow() {
+    currentFlow = null;
+  }
+
+  function startShoeFlow(fromRoleId) {
+    const role = roles.find((r) => r.id === fromRoleId) || currentRole;
     currentRole = role;
     ensureConversation(role);
 
     currentFlow = {
       type: "shoe-quote",
+      roleId: role.id,
       step: 0,
       answers: [],
-      roleId: role.id,
     };
 
     const intro =
@@ -170,12 +207,7 @@
 
     updateRoleHeader(role);
     renderRoleTabs();
-    renderQuickQuestions();
     renderConversation();
-
-    if (window.chTownMapSetActiveRole) {
-      window.chTownMapSetActiveRole(role.id);
-    }
   }
 
   function handleShoeFlowAnswer(userText) {
@@ -195,121 +227,106 @@
         time: nowTimeLabel(),
       });
       renderConversation();
-      return true; // 還在流程中，先不要打 API
+      return true;
     }
 
-    // 問答結束，整合資訊打一次 OpenAI
-    const summaryPrompt = buildShoeQuotePrompt(currentFlow.answers);
+    // 問完所有問題，呼叫後端 AI 算估價
+    const summaryPrompt =
+      "以下是客人提供的鞋子清洗資訊，請你幫忙以 C.H 精緻洗衣的專業角度，保守估計清洗成功率與價格區間，並說明可能的風險與注意事項：" +
+      "\n\n" +
+      currentFlow.answers
+        .map((a, idx) => `Q${idx + 1}：${SHOE_FLOW_STEPS[idx]}\nA：${a}`)
+        .join("\n\n");
+
     conversations[role.id].push({
       type: "ai",
-      text: "收到，幫你根據剛剛的描述，綜合評估清洗成功率與價格區間，請稍等一下…",
+      text: "好的，我來幫你綜合評估一下，稍等我幾秒鐘。",
       time: nowTimeLabel(),
     });
     renderConversation();
 
-    currentFlow = null; // 結束流程
-    callChatApi(summaryPrompt, role.id);
+    fetch("/api/chat/" + role.id, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: summaryPrompt }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const reply =
+          (data && data.reply) ||
+          "目前系統回覆有點慢，等一下再試一次，或改由 LINE 詢問真人客服。";
+        conversations[role.id].push({
+          type: "ai",
+          text: reply,
+          time: nowTimeLabel(),
+        });
+        renderConversation();
+      })
+      .catch((err) => {
+        console.error("shoe-flow error", err);
+        conversations[role.id].push({
+          type: "ai",
+          text: FALLBACK_ERROR_TEXT,
+          time: nowTimeLabel(),
+        });
+        renderConversation();
+      })
+      .finally(() => {
+        resetFlow();
+      });
+
     return true;
   }
 
-  function buildShoeQuotePrompt(answers) {
-    const fields = [
-      "鞋子材質",
-      "鞋子品牌與型號",
-      "鞋子顏色",
-      "主要髒污或汙漬類型",
-      "髒污分布位置與範圍",
-      "是否發霉或有異味",
-      "是否為急件與時間需求",
-    ];
-
-    const pairs = fields
-      .map((label, idx) => `${label}：${answers[idx] || "（未填）"}`)
-      .join("\n");
-
-    return `
-你是「C.H 精緻洗衣」的專業洗鞋估價顧問，請用台灣消費者可以理解的方式，根據以下資訊，提供保守估價建議。
-
-請依序回覆：
-1）清洗成功率（請用 0～100% 的區間描述，偏保守，說明影響成功率的關鍵因素）
-2）建議清洗價格區間（請給出 NT$ 金額範圍，並說明為何是這個區間）
-3）可能的風險提醒（例如：變色、材質變硬、膠老化、黃漬僅能淡化等）
-4）處理流程簡述（用 2～4 個步驟，讓客人理解大概怎麼處理）
-5）建議話術（用你是 C.H 精緻洗衣的口吻，最後一段話邀請客人加 LINE 或預約收送，但不要太硬性推銷）
-
-客人提供的描述如下：
-${pairs}
-`;
-  }
-
-  // ===== 5. 對話資料初始化 =====
-  function ensureConversation(role) {
-    if (!conversations[role.id]) {
-      conversations[role.id] = [
-        {
-          type: "system",
-          text: `你現在在和「${role.name}」對話：${role.badge}`,
-          time: nowTimeLabel(),
-        },
-      ];
-    }
-  }
-
-  // ===== 6. 更新右側標頭 =====
+  // ===== 5. 更新右側角色頭像區 =====
   function updateRoleHeader(role) {
+    if (!role) return;
+    currentRole = role;
     if (currentRoleNameEl) currentRoleNameEl.textContent = role.name;
     if (roleBadgeEl) roleBadgeEl.textContent = role.badge;
-    if (roleAvatarImgEl && role.avatar) {
-      roleAvatarImgEl.src = role.avatar;
-      roleAvatarImgEl.alt = role.name + "頭像";
+    if (roleAvatarImgEl) roleAvatarImgEl.src = role.avatar;
+
+    if (window.chTownMapSetActiveRole) {
+      window.chTownMapSetActiveRole(role.id);
     }
   }
 
-  // ===== 7. 渲染角色 tabs =====
+  // ===== 6. 渲染角色 tabs =====
   function renderRoleTabs() {
     roleTabsEl.innerHTML = "";
     roles.forEach((role) => {
-      const btn = document.createElement("button");
-      btn.className =
+      const tab = document.createElement("button");
+      tab.className =
         "role-tab" + (role.id === currentRole.id ? " active" : "");
-      btn.textContent = role.name;
-      btn.addEventListener("click", () => {
-        switchRole(role.id);
+      tab.textContent = role.icon + " " + role.name;
+      tab.addEventListener("click", () => {
+        currentRole = role;
+        ensureConversation(role);
+        updateRoleHeader(role);
+        renderRoleTabs();
+        renderConversation();
       });
-      roleTabsEl.appendChild(btn);
+      roleTabsEl.appendChild(tab);
     });
   }
 
-  // ===== 8. 渲染快捷問題 =====
+  // ===== 7. 快捷問題區 =====
   function renderQuickQuestions() {
-    if (!quickQuestionsEl) return;
     quickQuestionsEl.innerHTML = "";
-
-    (currentRole.samples || []).forEach((q) => {
+    const role = currentRole;
+    if (!role.samples || !role.samples.length) return;
+    role.samples.forEach((q) => {
       const btn = document.createElement("button");
-      btn.className = "quick-question";
+      btn.className = "quick-question-btn";
       btn.textContent = q;
       btn.addEventListener("click", () => {
         sendMessage(q);
       });
       quickQuestionsEl.appendChild(btn);
     });
-
-    if (
-      currentRole.id === "chCustomerService" ||
-      currentRole.id === "cleanerMaster"
-    ) {
-      const btn = document.createElement("button");
-      btn.className = "quick-question quick-question-accent";
-      btn.textContent = "🥿 我要估鞋子清洗價格";
-      btn.addEventListener("click", () => {
-        startShoeQuoteFlow(currentRole.id);
-      });
-      quickQuestionsEl.appendChild(btn);
-    }
   }
 
-  // ===== 9. 渲染對話內容 =====
+  // ===== 8. 對話訊息渲染 =====
   function renderConversation() {
     const msgs = conversations[currentRole.id] || [];
     chatBoxEl.innerHTML = "";
@@ -321,93 +338,24 @@ ${pairs}
       const bubble = document.createElement("div");
       bubble.className = "bubble";
 
-      const rawText = (m.text || "").toString();
-      const displayText =
-        !rawText.trim() || rawText.includes("無回應內容")
-          ? FALLBACK_ERROR_TEXT
-          : rawText;
+      const textEl = document.createElement("div");
+      textEl.className = "text";
+      textEl.textContent = m.text;
 
-      bubble.textContent = displayText;
+      const metaEl = document.createElement("div");
+      metaEl.className = "meta";
+      metaEl.textContent = m.time || "";
+
+      bubble.appendChild(textEl);
+      bubble.appendChild(metaEl);
       wrapper.appendChild(bubble);
-
-      if (m.time) {
-        const meta = document.createElement("div");
-        meta.className = "msg-meta";
-        meta.textContent = m.time;
-        wrapper.appendChild(meta);
-      }
-
       chatBoxEl.appendChild(wrapper);
     });
 
     chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
   }
 
-  // ===== 10. 呼叫後端 OpenAI API（所有角色共用，含「打字中」泡泡） =====
-  async function callChatApi(text, roleId) {
-    const role = roles.find((r) => r.id === roleId) || currentRole;
-    ensureConversation(role);
-
-    const typingMsg = {
-      type: "typing",
-      text: "正在為你整理回覆…",
-      time: nowTimeLabel(),
-    };
-    conversations[role.id].push(typingMsg);
-    renderConversation();
-
-    try {
-      const resp = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          message: text,
-          roleId: role.id,
-        }),
-      });
-
-      if (!resp.ok) {
-        throw new Error("API 回傳非 200 狀態");
-      }
-
-      let data;
-      try {
-        data = await resp.json();
-      } catch (parseErr) {
-        console.error("[chat] JSON parse error:", parseErr);
-        typingMsg.type = "ai";
-        typingMsg.text = FALLBACK_ERROR_TEXT;
-        renderConversation();
-        return;
-      }
-
-      let replyRaw =
-        (data &&
-          (data.reply || data.message || data.content || data.error || ""))
-          .toString()
-          .trim() || "";
-
-      console.log("[chat] raw reply from /api/chat:", replyRaw);
-
-      if (!replyRaw || replyRaw.includes("無回應內容")) {
-        typingMsg.type = "ai";
-        typingMsg.text = FALLBACK_ERROR_TEXT;
-      } else {
-        typingMsg.type = "ai";
-        typingMsg.text = replyRaw;
-      }
-
-      renderConversation();
-    } catch (err) {
-      console.error("[chat] fetch error:", err);
-      typingMsg.type = "ai";
-      typingMsg.text = FALLBACK_ERROR_TEXT;
-      renderConversation();
-    }
-  }
-
-  // ===== 11. 發送訊息（一般對話 or 流程模式） =====
+  // ===== 9. 對話送出處理 =====
   function sendMessage(text) {
     const t = (text || "").trim();
     if (!t) return;
@@ -423,87 +371,78 @@ ${pairs}
     if (userInputEl) userInputEl.value = "";
 
     if (currentFlow && currentFlow.type === "shoe-quote") {
-      const handled = handleShoeFlowAnswer(t);
-      if (handled) return;
+      if (handleShoeFlowAnswer(t)) {
+        return;
+      }
     }
 
-    callChatApi(t, role.id);
+    fetch("/api/chat/" + role.id, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: t }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const reply =
+          (data && data.reply) ||
+          "目前系統回覆有點慢，等一下再試一次，或改由 LINE 詢問真人客服。";
+        conversations[role.id].push({
+          type: "ai",
+          text: reply,
+          time: nowTimeLabel(),
+        });
+        renderConversation();
+      })
+      .catch((err) => {
+        console.error("chat error", err);
+        conversations[role.id].push({
+          type: "ai",
+          text: FALLBACK_ERROR_TEXT,
+          time: nowTimeLabel(),
+        });
+        renderConversation();
+      });
   }
 
-  // ===== 12. 切換角色（給 tabs / 建築用） =====
-  function switchRole(roleId) {
-    const role = roles.find((r) => r.id === roleId);
-    if (!role) return;
-
-    currentRole = role;
-    ensureConversation(role);
-    updateRoleHeader(role);
-    renderRoleTabs();
-    renderQuickQuestions();
-    renderConversation();
-
-    if (window.chTownMapSetActiveRole) {
-      window.chTownMapSetActiveRole(role.id);
-    }
+  // ===== 10. 綁定事件 =====
+  if (chatFormEl) {
+    chatFormEl.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!userInputEl) return;
+      sendMessage(userInputEl.value);
+    });
   }
 
-  // ===== 13. NPC 主動講話（給 game.js 呼叫） =====
-  function npcQuickTalk(roleId, text) {
-    const role = roles.find((r) => r.id === roleId);
-    if (!role) return;
+  if (shoeFlowBtnEl) {
+    shoeFlowBtnEl.addEventListener("click", function () {
+      startShoeFlow("deliveryStaff");
+    });
+  }
 
+  // 左邊小鎮透過 window.chTownNpcSay 呼叫這裡
+  window.chTownNpcSay = function (roleId, text) {
+    const role = roles.find((r) => r.id === roleId) || currentRole;
     currentRole = role;
     ensureConversation(role);
+
     conversations[role.id].push({
       type: "ai",
       text,
       time: nowTimeLabel(),
     });
-
     updateRoleHeader(role);
     renderRoleTabs();
-    renderQuickQuestions();
     renderConversation();
-
-    if (window.chTownMapSetActiveRole) {
-      window.chTownMapSetActiveRole(role.id);
-    }
-  }
-
-  // ===== 14. 提供給 game.js 呼叫的全域函式 =====
-  window.chTownSwitchRoleFromMap = function (roleId) {
-    switchRole(roleId);
   };
 
-  window.chTownNpcSay = function (roleId, text) {
-    npcQuickTalk(roleId, text);
-  };
+  // ===== 11. 初始化畫面 =====
+  roles.forEach((r) => ensureConversation(r));
 
-  window.chTownFillUserInput = function (text) {
-    if (!userInputEl) return;
-    userInputEl.value = text || "";
-    userInputEl.focus();
-  };
+  appendAiMessage(
+    roles[0],
+    "嗨～歡迎來到 C.H AI 小鎮，我可以先幫你介紹服務，或你有什麼想問的都可以直接打在下面。"
+  );
 
-  window.chTownStartShoeQuote = function (preferRoleId) {
-    startShoeQuoteFlow(preferRoleId);
-  };
-
-  // ===== 15. 綁定輸入表單 =====
-  chatFormEl.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if (!userInputEl) return;
-    sendMessage(userInputEl.value);
-  });
-
-  if (shoeFlowBtnEl) {
-    shoeFlowBtnEl.addEventListener("click", () => {
-      startShoeQuoteFlow(currentRole.id);
-    });
-  }
-
-  // ===== 16. 初始化 =====
-  ensureConversation(currentRole);
   updateRoleHeader(currentRole);
   renderRoleTabs();
   renderQuickQuestions();
