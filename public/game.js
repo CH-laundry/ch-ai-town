@@ -28,7 +28,7 @@
 
   function preload() {
     const scene = this;
-    // 用相對路徑，避免在 LIFF / 子路徑上 404
+    // 相對路徑，避免在 LIFF 子路徑 404
     scene.load.image("building-store", "images/building-store.png");
     scene.load.image("building-ironing", "images/building-ironing.png");
     scene.load.image("building-delivery", "images/building-delivery.png");
@@ -45,7 +45,7 @@
     const centerX = w / 2;
     const centerY = h / 2;
 
-    // ===== 可移動範圍 =====
+    // 可移動範圍
     scene.mapBounds = {
       minX: centerX - w * 0.42,
       maxX: centerX + w * 0.42,
@@ -53,20 +53,15 @@
       maxY: h * 0.86,
     };
 
-    // ===== 外框面板 =====
-    const frame = scene.add
+    // 外框 & 底色
+    scene.add
       .rectangle(centerX, centerY, w * 0.96, h * 0.96, 0x111528)
       .setStrokeStyle(2, 0x343b5d);
-    frame.setOrigin(0.5, 0.5);
-
-    // 背景街景底色
     scene.add.rectangle(centerX, centerY, w * 0.9, h * 0.8, 0x090d1c);
 
-    // ===== 道路與人行道 =====
-    const roadWidth = w * 0.24;
-
     // 垂直道路
-    const vRoad = scene.add.rectangle(centerX, centerY, roadWidth, h * 0.8, 0x1c2435);
+    const roadW = w * 0.24;
+    const vRoad = scene.add.rectangle(centerX, centerY, roadW, h * 0.8, 0x1c2435);
     vRoad.setStrokeStyle(2, 0x2c3448);
 
     // 水平道路
@@ -75,20 +70,19 @@
       centerX,
       hRoadY,
       w * 0.82,
-      roadWidth * 0.7,
+      roadW * 0.7,
       0x1a2133
     );
     hRoad.setStrokeStyle(2, 0x2a3244);
 
-    // 垂直道路虛線
+    // 垂直虛線
     const vDashCount = 9;
     const vDashLen = h * 0.05;
     for (let i = 0; i < vDashCount; i++) {
       const y = centerY - (h * 0.7) / 2 + vDashLen / 2 + i * vDashLen * 1.4;
       scene.add.rectangle(centerX, y, 4, vDashLen, 0xe5e5f5);
     }
-
-    // 水平道路虛線
+    // 水平虛線
     const hDashCount = 9;
     const hDashLen = w * 0.05;
     for (let i = 0; i < hDashCount; i++) {
@@ -96,10 +90,9 @@
       scene.add.rectangle(x, hRoadY, hDashLen, 3, 0x4a536f);
     }
 
-    // ===== 街景裝飾（樹、人行道、路燈、紅綠燈） =====
-    (function createTownDecor() {
+    // 街景裝飾
+    (function decor() {
       const sidewalkH = h * 0.035;
-      // 上下人行道
       scene.add
         .rectangle(centerX, h * 0.32, w * 0.84, sidewalkH, 0x181e2e)
         .setStrokeStyle(1, 0x424a63);
@@ -107,26 +100,25 @@
         .rectangle(centerX, h * 0.52, w * 0.84, sidewalkH, 0x181e2e)
         .setStrokeStyle(1, 0x424a63);
 
-      function addTree(x, y) {
-        scene.add.rectangle(x, y + 18, 6, 24, 0x7a4a27); // 樹幹
+      function tree(x, y) {
+        scene.add.rectangle(x, y + 18, 6, 24, 0x7a4a27);
         scene.add.circle(x, y, 14, 0x3ea86b);
         scene.add.circle(x + 10, y - 6, 10, 0x3ea86b);
         scene.add.circle(x - 10, y - 4, 9, 0x3ea86b);
       }
 
-      addTree(centerX - w * 0.34, h * 0.26);
-      addTree(centerX + w * 0.34, h * 0.26);
-      addTree(centerX - w * 0.34, h * 0.6);
-      addTree(centerX + w * 0.34, h * 0.6);
+      tree(centerX - w * 0.34, h * 0.26);
+      tree(centerX + w * 0.34, h * 0.26);
+      tree(centerX - w * 0.34, h * 0.6);
+      tree(centerX + w * 0.34, h * 0.6);
 
-      // 草叢
       for (let i = -2; i <= 2; i++) {
         const x = centerX + i * (w * 0.08);
         const y = h * 0.24;
         scene.add.circle(x, y, 6, 0x3ea86b);
       }
 
-      function addLamp(x, y) {
+      function lamp(x, y) {
         const pole = scene.add.rectangle(x, y + 22, 3, 44, 0x404862);
         const head = scene.add.rectangle(x, y, 14, 10, 0x242b3a);
         const glow = scene.add.circle(x, y + 10, 6, 0xfff2b3);
@@ -135,8 +127,8 @@
         head.setDepth(3);
         glow.setDepth(3);
       }
-      addLamp(centerX - w * 0.2, h * 0.18);
-      addLamp(centerX + w * 0.2, h * 0.18);
+      lamp(centerX - w * 0.2, h * 0.18);
+      lamp(centerX + w * 0.2, h * 0.18);
 
       // 紅綠燈
       const pole = scene.add.rectangle(centerX + w * 0.28, h * 0.34, 4, 70, 0x3a4158);
@@ -150,8 +142,7 @@
       yellow.setDepth(4);
       green.setDepth(4);
 
-      // 紅綠燈自動變色
-      let phase = 0; // 0=紅 1=黃 2=綠
+      let phase = 0; // 0 紅、1 黃、2 綠
       function applyPhase() {
         red.setAlpha(phase === 0 ? 1 : 0.2);
         yellow.setAlpha(phase === 1 ? 1 : 0.2);
@@ -168,24 +159,23 @@
       });
     })();
 
-    // ===== 建築（門市 / 整燙中心 / 收送倉庫） =====
+    // 建築
     const buildingW = w * 0.22;
     const buildingH = h * 0.22;
 
-    function createBuildingImage(x, y, key) {
+    function createBuilding(x, y, key) {
       let img;
       if (scene.textures.exists(key)) {
         img = scene.add.image(x, y, key);
         img.setDisplaySize(buildingW, buildingH);
       } else {
-        // 圖片載不到時的備案，不用 Phaser 綠色錯誤圖
         img = scene.add.rectangle(x, y, buildingW, buildingH, 0x111111);
       }
       img.setInteractive({ useHandCursor: true });
       return img;
     }
 
-    // 門市（上方）
+    // 門市
     const storeX = centerX;
     const storeY = h * 0.25;
     scene.add
@@ -197,9 +187,9 @@
         0x151b2c
       )
       .setStrokeStyle(1, 0x2a3144);
-    const store = createBuildingImage(storeX, storeY, "building-store");
+    const store = createBuilding(storeX, storeY, "building-store");
 
-    // 整燙中心（右下）
+    // 整燙中心
     const ironX = centerX + w * 0.18;
     const ironY = h * 0.66;
     scene.add
@@ -211,9 +201,9 @@
         0x151b2c
       )
       .setStrokeStyle(1, 0x2a3144);
-    const ironing = createBuildingImage(ironX, ironY, "building-ironing");
+    const ironing = createBuilding(ironX, ironY, "building-ironing");
 
-    // 收送倉庫（左下）
+    // 收送倉庫
     const deliX = centerX - w * 0.18;
     const deliY = h * 0.66;
     scene.add
@@ -225,20 +215,20 @@
         0x151b2c
       )
       .setStrokeStyle(1, 0x2a3144);
-    const delivery = createBuildingImage(deliX, deliY, "building-delivery");
+    const delivery = createBuilding(deliX, deliY, "building-delivery");
 
-    // ===== 建築高亮框 =====
+    // 高亮框
     function createHighlight(target) {
-      const bounds = target.getBounds();
-      const rect = scene.add.rectangle(
-        bounds.centerX,
-        bounds.centerY,
-        bounds.width + 12,
-        bounds.height + 12
+      const b = target.getBounds();
+      const r = scene.add.rectangle(
+        b.centerX,
+        b.centerY,
+        b.width + 12,
+        b.height + 12
       );
-      rect.setStrokeStyle(3, 0xffa6c7);
-      rect.setVisible(false);
-      return rect;
+      r.setStrokeStyle(3, 0xffa6c7);
+      r.setVisible(false);
+      return r;
     }
     const storeHL = createHighlight(store);
     const ironHL = createHighlight(ironing);
@@ -253,9 +243,8 @@
       if (roleId === "deliveryStaff") deliHL.setVisible(true);
     }
 
-    // ===== NPC 圖像 =====
+    // NPC 圖像
     const npcSize = Math.min(w, h) * 0.12;
-
     const npcCs = scene.add.image(
       storeX + buildingW * 0.42,
       storeY - buildingH * 0.35,
@@ -280,7 +269,7 @@
     npcDeli.setDisplaySize(npcSize, npcSize);
     npcDeli.setInteractive({ useHandCursor: true });
 
-    // ===== 室內場景容器 =====
+    // 室內場景
     scene.interiorContainer = scene.add.container(centerX, centerY);
     scene.interiorContainer.setDepth(50);
     scene.interiorContainer.setVisible(false);
@@ -294,7 +283,7 @@
 
     function openInterior(kind) {
       clearInterior();
-      const container = scene.interiorContainer;
+      const c = scene.interiorContainer;
       const objs = [];
 
       const floor = scene.add.rectangle(
@@ -318,15 +307,15 @@
         shelf.setStrokeStyle(1, 0x424a63);
         objs.push(shelf);
 
-        const bottleRows = 3;
-        const bottleCols = 7;
+        const rows = 3;
+        const cols = 7;
         const startX = centerX - w * 0.26;
         const startY = centerY - h * 0.08;
-        const gapX = (w * 0.52) / (bottleCols - 1);
-        const gapY = (h * 0.11) / (bottleRows - 1);
-        for (let r = 0; r < bottleRows; r++) {
-          for (let c = 0; c < bottleCols; c++) {
-            const x = startX + gapX * c;
+        const gapX = (w * 0.52) / (cols - 1);
+        const gapY = (h * 0.11) / (rows - 1);
+        for (let r = 0; r < rows; r++) {
+          for (let cidx = 0; cidx < cols; cidx++) {
+            const x = startX + gapX * cidx;
             const y = startY + gapY * r;
             const bottle = scene.add.rectangle(x, y, 8, 14, 0x4eb7ff);
             const cap = scene.add.rectangle(x, y - 9, 6, 4, 0xffffff);
@@ -352,7 +341,6 @@
           0x2b3346
         );
         objs.push(rack);
-
         for (let i = -3; i <= 3; i++) {
           const x = centerX + i * (w * 0.1);
           const cloth = scene.add.rectangle(
@@ -365,7 +353,6 @@
           cloth.setStrokeStyle(1, 0x6c7898);
           objs.push(cloth);
         }
-
         const table = scene.add.rectangle(
           centerX,
           centerY + h * 0.12,
@@ -396,15 +383,15 @@
         shelf.setStrokeStyle(1, 0x424a63);
         objs.push(shelf);
 
-        const boxRows = 3;
-        const boxCols = 2;
+        const rows = 3;
+        const cols = 2;
         const startX = shelf.x - w * 0.11;
         const startY = shelf.y - h * 0.1;
         const gapX = w * 0.11;
         const gapY = h * 0.09;
-        for (let r = 0; r < boxRows; r++) {
-          for (let c = 0; c < boxCols; c++) {
-            const x = startX + gapX * c;
+        for (let r = 0; r < rows; r++) {
+          for (let cidx = 0; cidx < cols; cidx++) {
+            const x = startX + gapX * cidx;
             const y = startY + gapY * r;
             const box = scene.add.rectangle(x, y, 40, 26, 0xcc9a5b);
             box.setStrokeStyle(1, 0x8a6437);
@@ -413,8 +400,8 @@
         }
       }
 
-      objs.forEach((o) => container.add(o));
-      container.setVisible(true);
+      objs.forEach((o) => c.add(o));
+      c.setVisible(true);
       scene.isInInterior = true;
 
       const exitZone = scene.add
@@ -422,7 +409,7 @@
         .setAlpha(0.01)
         .setInteractive({ useHandCursor: true });
       exitZone.on("pointerdown", clearInterior);
-      container.add(exitZone);
+      c.add(exitZone);
     }
 
     function bindRoleClick(target, roleId, text, interiorKind) {
@@ -431,9 +418,7 @@
           window.chTownNpcSay(roleId, text);
         }
         setActiveBuilding(roleId);
-        if (interiorKind) {
-          openInterior(interiorKind);
-        }
+        if (interiorKind) openInterior(interiorKind);
       });
     }
 
@@ -455,7 +440,6 @@
       "這裡是收送倉庫，想安排收送時間、改送回地址都可以先問問看。",
       "delivery"
     );
-
     bindRoleClick(
       npcCs,
       "chCustomerService",
@@ -475,10 +459,9 @@
       null
     );
 
-    // ===== 主角：帶帽子小男生 =====
+    // 主角
     const playerSize = Math.min(w, h) * 0.06;
     const player = scene.add.container(centerX, h * 0.5);
-
     const feet = scene.add.rectangle(
       0,
       playerSize * 0.9,
@@ -520,30 +503,27 @@
       playerSize * 0.9,
       0xf3c08b
     );
-
     player.add([feet, body, head, hatBrim, hatTop, strap]);
+
     scene.player = player;
     scene.playerTarget = null;
-
     scene.cursors = scene.input.keyboard.createCursorKeys();
 
-    // 點地圖移動
     scene.input.on("pointerdown", (pointer) => {
       if (scene.isInInterior) return;
-      const tgtX = Phaser.Math.Clamp(
+      const x = Phaser.Math.Clamp(
         pointer.x,
         scene.mapBounds.minX,
         scene.mapBounds.maxX
       );
-      const tgtY = Phaser.Math.Clamp(
+      const y = Phaser.Math.Clamp(
         pointer.y,
         scene.mapBounds.minY,
         scene.mapBounds.maxY
       );
-      scene.playerTarget = { x: tgtX, y: tgtY };
+      scene.playerTarget = { x, y };
     });
 
-    // 外部可切換高亮
     window.chTownMapSetActiveRole = function (roleId) {
       setActiveBuilding(roleId);
     };
@@ -555,7 +535,7 @@
     const player = scene.player;
     if (!player || scene.isInInterior) return;
 
-    const speed = 2.0;
+    const speed = 2;
 
     if (scene.cursors) {
       let vx = 0;
@@ -587,10 +567,8 @@
     }
 
     if (scene.playerTarget) {
-      const tx = scene.playerTarget.x;
-      const ty = scene.playerTarget.y;
-      const dx = tx - player.x;
-      const dy = ty - player.y;
+      const dx = scene.playerTarget.x - player.x;
+      const dy = scene.playerTarget.y - player.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < 1) {
         scene.playerTarget = null;
