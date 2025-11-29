@@ -1,8 +1,7 @@
 // public/app.js
-// 左邊大地圖、右邊對話，角色頭像 + tabs 切換 + NPC 互動 + 新手導覽 + 洗鞋估價流程
+// 左邊小鎮 + 右邊對話區：角色切換、AI 回覆、洗鞋估價流程、新手導覽
 
 (function () {
-  // ===== 0. 共用設定 =====
   const FALLBACK_ERROR_TEXT =
     "系統目前連線異常，請稍後再試，或改由官方 LINE 詢問真人客服。";
 
@@ -17,7 +16,7 @@
     }
   }
 
-  // ===== 1. 角色 =====
+  // ===== 角色設定 =====
   const roles = [
     {
       id: "chCustomerService",
@@ -103,7 +102,7 @@
     }
   }
 
-  // ===== 2. DOM 取得 =====
+  // ===== DOM =====
   const roleTabsEl = document.getElementById("role-tabs");
   const chatBoxEl = document.getElementById("chat-box");
   const quickQuestionsEl = document.getElementById("quick-questions");
@@ -122,7 +121,7 @@
     return;
   }
 
-  // ===== 3. 新手導覽 =====
+  // ===== 新手導覽 =====
   function showOnboarding() {
     if (!onboardingEl) return;
     onboardingEl.classList.add("visible");
@@ -134,7 +133,7 @@
     try {
       localStorage.setItem("chTownOnboardingDone", "1");
     } catch (e) {
-      console.warn("localStorage 無法使用", e);
+      // ignore
     }
   }
 
@@ -143,27 +142,21 @@
     if (!done) {
       setTimeout(showOnboarding, 600);
     }
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
 
-  // ★ 這裡同時綁 click + touchstart，避免手機版按鈕無反應
-  if (onboardingCloseEl) {
-    onboardingCloseEl.addEventListener("click", hideOnboarding);
-    onboardingCloseEl.addEventListener("touchstart", function (e) {
+  function bindClickAndTouch(el, handler) {
+    if (!el) return;
+    el.addEventListener("click", handler);
+    el.addEventListener("touchstart", function (e) {
       e.preventDefault();
-      hideOnboarding();
-    });
-  }
-  if (onboardingBtnEl) {
-    onboardingBtnEl.addEventListener("click", hideOnboarding);
-    onboardingBtnEl.addEventListener("touchstart", function (e) {
-      e.preventDefault();
-      hideOnboarding();
+      handler();
     });
   }
 
-  // ===== 4. 洗鞋估價流程狀態 =====
+  bindClickAndTouch(onboardingCloseEl, hideOnboarding);
+  bindClickAndTouch(onboardingBtnEl, hideOnboarding);
+
+  // ===== 洗鞋估價流程 =====
   const SHOE_FLOW_STEPS = [
     "鞋子大概是什麼材質？例如：帆布、真皮、麂皮、網布、運動鞋等。",
     "鞋子品牌與型號大概是什麼？（不清楚可以說「不確定」）",
@@ -207,6 +200,7 @@
 
     updateRoleHeader(role);
     renderRoleTabs();
+    renderQuickQuestions();
     renderConversation();
   }
 
@@ -230,7 +224,6 @@
       return true;
     }
 
-    // 問完所有問題，呼叫後端 AI 算估價
     const summaryPrompt =
       "以下是客人提供的鞋子清洗資訊，請你幫忙以 C.H 精緻洗衣的專業角度，保守估計清洗成功率與價格區間，並說明可能的風險與注意事項：" +
       "\n\n" +
@@ -271,14 +264,12 @@
         });
         renderConversation();
       })
-      .finally(() => {
-        resetFlow();
-      });
+      .finally(resetFlow);
 
     return true;
   }
 
-  // ===== 5. 更新右側角色頭像區 =====
+  // ===== 右側角色抬頭區 =====
   function updateRoleHeader(role) {
     if (!role) return;
     currentRole = role;
@@ -291,7 +282,7 @@
     }
   }
 
-  // ===== 6. 渲染角色 tabs =====
+  // ===== 角色 tabs =====
   function renderRoleTabs() {
     roleTabsEl.innerHTML = "";
     roles.forEach((role) => {
@@ -299,18 +290,27 @@
       tab.className =
         "role-tab" + (role.id === currentRole.id ? " active" : "");
       tab.textContent = role.icon + " " + role.name;
-      tab.addEventListener("click", () => {
+
+      const handler = () => {
         currentRole = role;
         ensureConversation(role);
         updateRoleHeader(role);
         renderRoleTabs();
+        renderQuickQuestions();
         renderConversation();
+      };
+
+      tab.addEventListener("click", handler);
+      tab.addEventListener("touchstart", function (e) {
+        e.preventDefault();
+        handler();
       });
+
       roleTabsEl.appendChild(tab);
     });
   }
 
-  // ===== 7. 快捷問題區 =====
+  // ===== 快捷問題 =====
   function renderQuickQuestions() {
     quickQuestionsEl.innerHTML = "";
     const role = currentRole;
@@ -319,14 +319,22 @@
       const btn = document.createElement("button");
       btn.className = "quick-question-btn";
       btn.textContent = q;
-      btn.addEventListener("click", () => {
+
+      const handler = () => {
         sendMessage(q);
+      };
+
+      btn.addEventListener("click", handler);
+      btn.addEventListener("touchstart", function (e) {
+        e.preventDefault();
+        handler();
       });
+
       quickQuestionsEl.appendChild(btn);
     });
   }
 
-  // ===== 8. 對話訊息渲染 =====
+  // ===== 對話區 =====
   function renderConversation() {
     const msgs = conversations[currentRole.id] || [];
     chatBoxEl.innerHTML = "";
@@ -355,7 +363,7 @@
     chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
   }
 
-  // ===== 9. 對話送出處理 =====
+  // ===== 送出訊息 =====
   function sendMessage(text) {
     const t = (text || "").trim();
     if (!t) return;
@@ -371,9 +379,7 @@
     if (userInputEl) userInputEl.value = "";
 
     if (currentFlow && currentFlow.type === "shoe-quote") {
-      if (handleShoeFlowAnswer(t)) {
-        return;
-      }
+      if (handleShoeFlowAnswer(t)) return;
     }
 
     fetch("/api/chat/" + role.id, {
@@ -404,7 +410,6 @@
       });
   }
 
-  // ===== 10. 綁定事件 =====
   if (chatFormEl) {
     chatFormEl.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -414,12 +419,12 @@
   }
 
   if (shoeFlowBtnEl) {
-    shoeFlowBtnEl.addEventListener("click", function () {
+    bindClickAndTouch(shoeFlowBtnEl, function () {
       startShoeFlow("deliveryStaff");
     });
   }
 
-  // 左邊小鎮透過 window.chTownNpcSay 呼叫這裡
+  // 左邊小鎮呼叫：NPC 對話
   window.chTownNpcSay = function (roleId, text) {
     const role = roles.find((r) => r.id === roleId) || currentRole;
     currentRole = role;
@@ -432,12 +437,12 @@
     });
     updateRoleHeader(role);
     renderRoleTabs();
+    renderQuickQuestions();
     renderConversation();
   };
 
-  // ===== 11. 初始化畫面 =====
+  // ===== 初始化 =====
   roles.forEach((r) => ensureConversation(r));
-
   appendAiMessage(
     roles[0],
     "嗨～歡迎來到 C.H AI 小鎮，我可以先幫你介紹服務，或你有什麼想問的都可以直接打在下面。"
